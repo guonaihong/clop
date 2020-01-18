@@ -1,0 +1,32 @@
+package clop
+
+import (
+	"github.com/stretchr/testify/assert"
+	"os"
+	"testing"
+)
+
+func Test_Usage_tmpl(t *testing.T) {
+	help := Help{
+		Version: "clop v0.0.1",
+		About:   "guonaihong development",
+		Usage:   "test [FLAGS] [OPTIONS] --output <output> [--] [FILE]...",
+		Flags: []flags{
+			{"-d, --debug", "Activate debug mode"},
+			{"-h, --help", "Prints help information"},
+			{"-V, --version", "Prints version information"},
+			{"-v, --verbose", "Verbose mode (-v, -vv, -vvv, etc.)"},
+		},
+		Options: []flags{
+			{"-l, --level <level>...", "admin_level to consider"},
+			{"-c, --nb-cars <nb-cars>", "Number of cars"},
+			{"-o, --output <output>", "Output file"},
+			{"-s, --speed <speed>", "-s, --speed <speed>"},
+		},
+		Args: flags{"<FILE>...", "Files to process"},
+	}
+
+	tmpl := newTemplate()
+	err := tmpl.Execute(os.Stdout, help)
+	assert.NoError(t, err)
+}
