@@ -4,7 +4,7 @@ import (
 	"text/template"
 )
 
-type flags struct {
+type option struct {
 	Opt   string
 	Usage string
 }
@@ -13,9 +13,9 @@ type Help struct {
 	Version string
 	About   string
 	Usage   string
-	Flags   []flags
-	Options []flags
-	Args    flags
+	Flags   []option
+	Options []option
+	Args    option
 }
 
 var usageDefaultTmpl = `{{if gt (len .Version) 0}}{{.Version}}{{end}}
