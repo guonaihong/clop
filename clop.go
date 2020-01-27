@@ -1,10 +1,19 @@
 package clop
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
 	"strings"
+	"sync"
+)
+
+var (
+	ErrDuplicateOptions = errors.New("duplicate command options")
+	ErrUsageEmpty       = errors.New("usage cannot be empty")
+	ErrUnsupported      = errors.New("unsupported command")
+	ErrNotFoundName     = errors.New("no command line options found")
 )
 
 // 长短选项为什么要分开,遍历的数据会更少
@@ -13,36 +22,61 @@ type Clop struct {
 	long       map[string]*Option
 	shortRegex []*Option
 	longRegex  []*Option
+	optionPool sync.Pool
 }
 
 type Option struct {
-	Name     string      //命令行选项名称
-	Pointer  interface{} //存放需要修改的值的地址
-	Usage    string      //帮助信息
-	DefValue string      //默认值
+	Pointer      reflect.Value //存放需要修改的值的地址
+	Usage        string        //帮助信息
+	showDefValue string        //显示默认值
+	index        int
 }
 
 func New(args []string) *Clop {
 	return &Clop{}
 }
 
-func (c *Clop) parseTag(clop string, usage string) error {
+func (c *Clop) setOption(name string, option *Option, m map[string]*Option) error {
+	if _, ok := m[name]; ok {
+		return fmt.Errorf("%s:%s", ErrDuplicateOptions, name)
+	}
+
+	m[name] = option
+	return nil
+}
+
+func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) error {
 	options := strings.Split(clop, ";")
 
-	for _, o := range options {
+	option := &Option{Usage: usage, Pointer: v}
+
+	findName := false
+	for _, opt := range options {
 		name := ""
 		switch {
-		case strings.HasPrefix(o, "--"):
-			name = o[2:]
-		case strings.HasPrefix(o, "-"):
-			name = o[1:]
+		case strings.HasPrefix(opt, "--"):
+			name = opt[2:]
+			c.setOption(name, option, c.long)
+			findName = true
+		case strings.HasPrefix(opt, "-"):
+			name = opt[1:]
+			c.setOption(name, option, c.short)
+			findName = true
+		case strings.HasPrefix(opt, "def="):
+			option.showDefValue = opt[4:]
+		default:
+			return fmt.Errorf("%s:%s", ErrUnsupported, opt)
 		}
 
-		if len(name) == 0 {
-			//TODO return fail
+		if strings.HasPrefix(opt, "-") && len(name) == 0 {
+			return fmt.Errorf("Illegal command line option:%s", opt)
 		}
 
 		fmt.Printf("name(%s)\n", name)
+	}
+
+	if !findName {
+		return fmt.Errorf("%s:%s", ErrNotFoundName, clop)
 	}
 
 	return nil
@@ -56,9 +90,23 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 	if v.Kind() != reflect.Struct {
 		clop := Tag(sf.Tag).Get("clop")
 		usage := Tag(sf.Tag).Get("usage")
-		fmt.Printf("clop(%s), usage(%s)\n", clop, usage)
 
-		c.parseTag(clop, usage)
+		// clop 可以省略
+		if len(clop) == 0 {
+			clop = strings.ToLower(sf.Name)
+			if len(clop) == 1 {
+				clop = "-" + clop
+			} else {
+				clop = "--" + clop
+			}
+		}
+
+		// usage  不能为空
+		if len(usage) == 0 {
+			return ErrUsageEmpty
+		}
+
+		c.parseTagAndSetOption(clop, usage, v)
 		return nil
 	}
 
