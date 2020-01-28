@@ -28,7 +28,7 @@ func Test_API_cat_test(t *testing.T) {
 
 	c := cat{}
 
-	cp := Clop{}
+	cp := New([]string{})
 	err := cp.register(&c)
 	assert.NoError(t, err)
 }
@@ -56,7 +56,7 @@ func Test_API_head_test(t *testing.T) {
 	}
 
 	h := head{}
-	cp := Clop{}
+	cp := New([]string{})
 	err := cp.register(&h)
 	assert.NoError(t, err)
 }

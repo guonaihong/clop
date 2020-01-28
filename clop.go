@@ -6,7 +6,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
+	"unicode/utf8"
 )
 
 var (
@@ -22,7 +22,7 @@ type Clop struct {
 	long       map[string]*Option
 	shortRegex []*Option
 	longRegex  []*Option
-	optionPool sync.Pool
+	args       []string
 }
 
 type Option struct {
@@ -33,7 +33,10 @@ type Option struct {
 }
 
 func New(args []string) *Clop {
-	return &Clop{}
+	return &Clop{
+		short: make(map[string]*Option),
+		long:  make(map[string]*Option),
+	}
 }
 
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option) error {
@@ -45,6 +48,60 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option) erro
 	return nil
 }
 
+func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
+	var (
+		option     *Option
+		shortIndex int
+	)
+
+	// 取出option对象
+	switch numMinuses {
+	case 2: //长选项
+		option, _ = c.long[arg]
+	case 1: //短选项
+		var a rune
+		for shortIndex, a = range arg {
+			if a >= utf8.RuneSelf {
+				return errors.New("Illegal character set")
+			}
+
+			option, _ = c.short[string(byte(a))]
+			if option != nil {
+				break
+			}
+
+		}
+	}
+
+	if option == nil {
+		return fmt.Errorf("not found")
+	}
+
+	value := ""
+	//TODO确认 posix
+	switch option.Pointer.Kind() {
+	//bool类型，不考虑false的情况
+	case reflect.Bool:
+		value = "true"
+	default:
+		// 如果是长
+		if numMinuses == 2 && *index+1 >= len(c.args) {
+			return errors.New("wrong long option")
+		}
+
+		if numMinuses == 1 {
+			value = arg[shortIndex:]
+		} else {
+			(*index)++
+			value = c.args[*index]
+		}
+
+	}
+
+	// 赋值
+	return setBase(value, option.Pointer)
+}
+
 func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) error {
 	options := strings.Split(clop, ";")
 
@@ -53,6 +110,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 	findName := false
 	for _, opt := range options {
 		name := ""
+		// TODO 检查name的长度
 		switch {
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
@@ -145,10 +203,47 @@ func (c *Clop) register(x interface{}) error {
 	return nil
 }
 
+func (c *Clop) parseOneOption(index *int) error {
+
+	arg := c.args[*index]
+
+	if len(arg) == 0 || arg[:1] != "-" {
+		//TODO return fail
+		return errors.New("fail option")
+	}
+
+	// arg 必须是减号开头的字符串
+	numMinuses := 1
+
+	if arg[1] == '-' {
+		numMinuses++
+	}
+
+	// 暂不支持=号的情况
+	// TODO 考虑下要不要加上
+
+	a := arg[numMinuses:]
+	return c.getOption(a, index, numMinuses)
+}
+
+func (c *Clop) bindStruct() error {
+
+	for i := 0; i < len(c.args); i++ {
+
+		if err := c.parseOneOption(&i); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
 func (c *Clop) Bind(x interface{}) error {
 	if err := c.register(x); err != nil {
 		return err
 	}
+
+	c.bindStruct()
 
 	return nil
 }
