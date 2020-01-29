@@ -5,9 +5,14 @@ import (
 	"testing"
 )
 
+type testAPI struct {
+	got  interface{}
+	need interface{}
+}
+
 func Test_API_cat_test(t *testing.T) {
 	type cat struct {
-		NumberNonblank bool `clop:"-c;--number-nonblank"
+		NumberNonblank bool `clop:"-b;--number-nonblank"
 							usage:"number nonempty output lines, overrides"`
 
 		ShowEnds bool `clop:"-E;--show-ends"
@@ -16,21 +21,39 @@ func Test_API_cat_test(t *testing.T) {
 		Number bool `clop:"-n;--number"
 						    usage:"number all output lines"`
 
-		SqueezeBlank bool `clop:"-n;--squeeze-blank"
+		SqueezeBlank bool `clop:"-s;--squeeze-blank"
 						    usage:"suppress repeated empty output lines"`
 
-		ShowTab bool `clop:"-s;--show-tabs"
+		ShowTab bool `clop:"-T;--show-tabs"
 						    usage:"display TAB characters as ^I"`
 
 		ShowNonprinting bool `clop:"-v;--show-nonprinting"
 						    usage:"use ^ and M- notation, except for LFD and TAB" `
 	}
 
-	c := cat{}
+	for _, test := range []testAPI{
+		{
+			func() cat {
+				c := cat{}
+				cp := New([]string{"-vTsnEb"})
+				err := cp.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), cat{NumberNonblank: true, ShowEnds: true, Number: true, SqueezeBlank: true, ShowTab: true, ShowNonprinting: true},
+		},
+		{
+			func() cat {
+				c := cat{}
+				cp := New([]string{"--show-nonprinting", "--show-tabs", "--squeeze-blank", "--number", "--show-ends", "--number-nonblank"})
+				err := cp.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), cat{NumberNonblank: true, ShowEnds: true, Number: true, SqueezeBlank: true, ShowTab: true, ShowNonprinting: true},
+		},
+	} {
 
-	cp := New([]string{})
-	err := cp.register(&c)
-	assert.NoError(t, err)
+		assert.Equal(t, test.got, test.need)
+	}
 }
 
 func Test_API_head_test(t *testing.T) {

@@ -36,6 +36,7 @@ func New(args []string) *Clop {
 	return &Clop{
 		short: make(map[string]*Option),
 		long:  make(map[string]*Option),
+		args:  args,
 	}
 }
 
@@ -60,16 +61,34 @@ func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
 		option, _ = c.long[arg]
 	case 1: //短选项
 		var a rune
+		find := false
+	exit:
 		for shortIndex, a = range arg {
+			//只支持ascii
 			if a >= utf8.RuneSelf {
 				return errors.New("Illegal character set")
 			}
 
-			option, _ = c.short[string(byte(a))]
-			if option != nil {
-				break
+			value := string(byte(a))
+			option, _ = c.short[value]
+			if option == nil {
+				continue
 			}
 
+			find = true
+			switch option.Pointer.Kind() {
+			case reflect.Bool:
+				if err := setBase("true", option.Pointer); err != nil {
+					return err
+				}
+
+			default:
+				break exit
+			}
+		}
+
+		if find {
+			return nil
 		}
 	}
 
@@ -130,7 +149,6 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 			return fmt.Errorf("Illegal command line option:%s", opt)
 		}
 
-		fmt.Printf("name(%s)\n", name)
 	}
 
 	if !findName {
@@ -171,7 +189,6 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 	typ := v.Type()
 	for i := 0; i < v.NumField(); i++ {
 		sf := typ.Field(i)
-		fmt.Printf("%s\n", sf.Tag)
 
 		if sf.PkgPath != "" && !sf.Anonymous {
 			continue
@@ -243,9 +260,7 @@ func (c *Clop) Bind(x interface{}) error {
 		return err
 	}
 
-	c.bindStruct()
-
-	return nil
+	return c.bindStruct()
 }
 
 func Bind(x interface{}) error {
