@@ -29,9 +29,12 @@ func Test_API_cat_test(t *testing.T) {
 
 		ShowNonprinting bool `clop:"-v;--show-nonprinting"
 						    usage:"use ^ and M- notation, except for LFD and TAB" `
+
+		Args []string `clop:"args"`
 	}
 
 	for _, test := range []testAPI{
+		// 测试短选项
 		{
 			func() cat {
 				c := cat{}
@@ -41,6 +44,7 @@ func Test_API_cat_test(t *testing.T) {
 				return c
 			}(), cat{NumberNonblank: true, ShowEnds: true, Number: true, SqueezeBlank: true, ShowTab: true, ShowNonprinting: true},
 		},
+		// 测试长选项
 		{
 			func() cat {
 				c := cat{}
@@ -49,6 +53,28 @@ func Test_API_cat_test(t *testing.T) {
 				assert.NoError(t, err)
 				return c
 			}(), cat{NumberNonblank: true, ShowEnds: true, Number: true, SqueezeBlank: true, ShowTab: true, ShowNonprinting: true},
+		},
+
+		// 测试长短选项混合的情况
+		{
+			func() cat {
+				c := cat{}
+				cp := New([]string{"-v", "--show-tabs", "-s", "--number", "-E", "--number-nonblank"})
+				err := cp.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), cat{NumberNonblank: true, ShowEnds: true, Number: true, SqueezeBlank: true, ShowTab: true, ShowNonprinting: true},
+		},
+
+		// 测试args选项
+		{
+			func() cat {
+				c := cat{}
+				cp := New([]string{"-n", "r.go", "-T", "pool.c"})
+				err := cp.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), cat{Number: true, ShowTab: true, Args: []string{"r.go", "pool.c"}},
 		},
 	} {
 

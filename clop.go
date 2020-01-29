@@ -23,6 +23,7 @@ type Clop struct {
 	shortRegex []*Option
 	longRegex  []*Option
 	args       []string
+	saveArgs   reflect.Value
 }
 
 type Option struct {
@@ -167,6 +168,11 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 		clop := Tag(sf.Tag).Get("clop")
 		usage := Tag(sf.Tag).Get("usage")
 
+		if clop == "args" {
+			c.saveArgs = v
+			return nil
+		}
+
 		// clop 可以省略
 		if len(clop) == 0 {
 			clop = strings.ToLower(sf.Name)
@@ -224,9 +230,14 @@ func (c *Clop) parseOneOption(index *int) error {
 
 	arg := c.args[*index]
 
-	if len(arg) == 0 || arg[:1] != "-" {
+	if len(arg) == 0 {
 		//TODO return fail
 		return errors.New("fail option")
+	}
+
+	if arg[0] != '-' {
+		setBase(arg, c.saveArgs)
+		return nil
 	}
 
 	// arg 必须是减号开头的字符串

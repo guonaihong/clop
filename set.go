@@ -13,22 +13,27 @@ type convert struct {
 	cb      func(val string, bitSize int, field reflect.Value) error
 }
 
-var convertFunc = map[reflect.Kind]convert{
-	reflect.Uint:    {bitSize: 0, cb: setUintField},
-	reflect.Uint8:   {bitSize: 8, cb: setUintField},
-	reflect.Uint16:  {bitSize: 16, cb: setUintField},
-	reflect.Uint32:  {bitSize: 32, cb: setUintField},
-	reflect.Uint64:  {bitSize: 64, cb: setUintField},
-	reflect.Int:     {bitSize: 0, cb: setIntField},
-	reflect.Int8:    {bitSize: 8, cb: setIntField},
-	reflect.Int16:   {bitSize: 16, cb: setIntField},
-	reflect.Int32:   {bitSize: 32, cb: setIntField},
-	reflect.Int64:   {bitSize: 64, cb: setIntDurationField},
-	reflect.Bool:    {bitSize: 0, cb: setBoolField},
-	reflect.Float32: {bitSize: 32, cb: setFloatField},
-	reflect.Float64: {bitSize: 64, cb: setFloatField},
-	reflect.Struct:  {bitSize: 0, cb: setStructField},
-	reflect.Map:     {bitSize: 0, cb: setMapField},
+var convertFunc map[reflect.Kind]convert
+
+func init() {
+	convertFunc = map[reflect.Kind]convert{
+		reflect.Uint:    {bitSize: 0, cb: setUintField},
+		reflect.Uint8:   {bitSize: 8, cb: setUintField},
+		reflect.Uint16:  {bitSize: 16, cb: setUintField},
+		reflect.Uint32:  {bitSize: 32, cb: setUintField},
+		reflect.Uint64:  {bitSize: 64, cb: setUintField},
+		reflect.Int:     {bitSize: 0, cb: setIntField},
+		reflect.Int8:    {bitSize: 8, cb: setIntField},
+		reflect.Int16:   {bitSize: 16, cb: setIntField},
+		reflect.Int32:   {bitSize: 32, cb: setIntField},
+		reflect.Int64:   {bitSize: 64, cb: setIntDurationField},
+		reflect.Bool:    {bitSize: 0, cb: setBoolField},
+		reflect.Float32: {bitSize: 32, cb: setFloatField},
+		reflect.Float64: {bitSize: 64, cb: setFloatField},
+		reflect.Struct:  {bitSize: 0, cb: setStructField},
+		reflect.Slice:   {bitSize: 0, cb: setSlice},
+		reflect.Map:     {bitSize: 0, cb: setMapField},
+	}
 }
 
 func setIntDurationField(val string, bitSize int, value reflect.Value) error {
@@ -93,23 +98,31 @@ func setStructField(val string, bitSize int, value reflect.Value) error {
 	return json.Unmarshal([]byte(val), value.Addr().Interface())
 }
 
-func setArray(vals []string, value reflect.Value) error {
-	for i, s := range vals {
-		err := setBase(s, value.Index(i))
-		if err != nil {
-			return err
-		}
+func setSlice(val string, bitSize int, value reflect.Value) error {
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
 	}
-	return nil
-}
 
-func setSlice(vals []string, value reflect.Value) error {
-	slice := reflect.MakeSlice(value.Type(), len(vals), len(vals))
-	err := setArray(vals, slice)
-	if err != nil {
+	first := false
+	if value.Len() == 0 {
+		first = true
+		// 初始化一个不为空的slice
+		value.Set(reflect.MakeSlice(value.Type(), 1, 1))
+	}
+
+	v := reflect.New(value.Index(0).Type())
+
+	v = v.Elem()
+	if err := setBase(val, v); err != nil {
 		return err
 	}
-	value.Set(slice)
+
+	if first {
+		value.SetLen(0)
+	}
+	v2 := reflect.Append(value, v)
+	value.Set(v2)
+
 	return nil
 }
 
