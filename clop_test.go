@@ -82,6 +82,29 @@ func Test_API_cat_test(t *testing.T) {
 	}
 }
 
+func Test_API_grep_test(t *testing.T) {
+	type grep struct {
+		BeforeContext int      `clop:"-B;--before-context" usage:"print NUM lines of leading context"`
+		AfterContext  int      `clop:"-A;--after-context"   usage:"print NUM lines of trailing context"`
+		Args          []string `clop:"args"`
+	}
+
+	for _, test := range []testAPI{
+		// 测试短选项
+		{
+			func() grep {
+				g := grep{}
+				cp := New([]string{"-B3", "--after-context", "1", "keyword", "join.txt"})
+				err := cp.Bind(&g)
+				assert.NoError(t, err)
+				return g
+			}(), grep{BeforeContext: 3, AfterContext: 1, Args: []string{"keyword", "join.txt"}},
+		},
+	} {
+		assert.Equal(t, test.need, test.got)
+	}
+}
+
 func Test_API_head_test(t *testing.T) {
 	type head struct {
 		Bytes int `clop:"-c;--bytes"

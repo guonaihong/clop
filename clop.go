@@ -60,10 +60,35 @@ func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
 	switch numMinuses {
 	case 2: //长选项
 		option, _ = c.long[arg]
+		if option == nil {
+			return fmt.Errorf("not found")
+		}
+		value := ""
+		//TODO确认 posix
+		switch option.Pointer.Kind() {
+		//bool类型，不考虑false的情况
+		case reflect.Bool:
+			value = "true"
+		default:
+			// 如果是长
+			if numMinuses == 2 && *index+1 >= len(c.args) {
+				return errors.New("wrong long option")
+			}
+
+			if numMinuses == 1 {
+				value = arg[shortIndex:]
+			} else {
+				(*index)++
+				value = c.args[*index]
+			}
+
+		}
+
+		// 赋值
+		return setBase(value, option.Pointer)
 	case 1: //短选项
 		var a rune
 		find := false
-	exit:
 		for shortIndex, a = range arg {
 			//只支持ascii
 			if a >= utf8.RuneSelf {
@@ -84,7 +109,10 @@ func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
 				}
 
 			default:
-				break exit
+				shortIndex++
+				if err := setBase(arg[shortIndex:], option.Pointer); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -97,29 +125,7 @@ func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
 		return fmt.Errorf("not found")
 	}
 
-	value := ""
-	//TODO确认 posix
-	switch option.Pointer.Kind() {
-	//bool类型，不考虑false的情况
-	case reflect.Bool:
-		value = "true"
-	default:
-		// 如果是长
-		if numMinuses == 2 && *index+1 >= len(c.args) {
-			return errors.New("wrong long option")
-		}
-
-		if numMinuses == 1 {
-			value = arg[shortIndex:]
-		} else {
-			(*index)++
-			value = c.args[*index]
-		}
-
-	}
-
-	// 赋值
-	return setBase(value, option.Pointer)
+	return nil
 }
 
 func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) error {
