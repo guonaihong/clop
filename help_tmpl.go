@@ -1,10 +1,11 @@
 package clop
 
 import (
+	"io"
 	"text/template"
 )
 
-type option struct {
+type showOption struct {
 	Opt   string
 	Usage string
 }
@@ -13,9 +14,14 @@ type Help struct {
 	Version string
 	About   string
 	Usage   string
-	Flags   []option
-	Options []option
-	Args    option
+	Flags   []showOption
+	Options []showOption
+	Args    showOption
+}
+
+func (h *Help) output(w io.Writer) error {
+	tmpl := newTemplate()
+	return tmpl.Execute(w, *h)
 }
 
 var usageDefaultTmpl = `{{if gt (len .Version) 0}}{{.Version}}{{end}}
@@ -26,8 +32,8 @@ var usageDefaultTmpl = `{{if gt (len .Version) 0}}{{.Version}}{{end}}
 {{if gt (len .Flags) 0 }}Flags:
 {{range $_, $flag:= .Flags}}    {{$flag.Opt}}    {{$flag.Usage}}
 {{end}}{{end}}
-{{if gt (len .Flags) 0 }}Options:
-{{range $_, $flag:= .Flags}}    {{$flag.Opt}}    {{$flag.Usage}}
+{{if gt (len .Options) 0 }}Options:
+{{range $_, $flag:= .Options}}    {{$flag.Opt}}    {{$flag.Usage}}
 {{end}}{{end}}
 {{if gt (len .Args.Opt) 0}}Args:
     {{.Args.Opt}}    {{.Args.Usage}}

@@ -16,21 +16,23 @@ var (
 	ErrNotFoundName     = errors.New("no command line options found")
 )
 
-// 长短选项为什么要分开,遍历的数据会更少
+// 长短选项分为short和long，优点遍历的数据会更少速度更快
 type Clop struct {
 	short      map[string]*Option
 	long       map[string]*Option
 	shortRegex []*Option
 	longRegex  []*Option
 	args       []string
-	saveArgs   reflect.Value
+	saveArgs   reflect.Value //TODO 测试args为空的情况
 }
 
 type Option struct {
 	Pointer      reflect.Value //存放需要修改的值的地址
 	Usage        string        //帮助信息
 	showDefValue string        //显示默认值
-	index        int
+	index        int           //表示参数优先级
+	showShort    []string      //help显示的短选项
+	showLong     []string      //help显示的长选项
 }
 
 func New(args []string) *Clop {
@@ -59,6 +61,10 @@ func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
 	// 取出option对象
 	switch numMinuses {
 	case 2: //长选项
+		if arg == "help" {
+			c.printHelpMessage()
+			os.Exit(0)
+		}
 		option, _ = c.long[arg]
 		if option == nil {
 			return fmt.Errorf("not found")
@@ -128,6 +134,54 @@ func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
 	return nil
 }
 
+func (c *Clop) genHelpMessage(h *Help) {
+
+	used := make(map[*Option]struct{}, len(c.short))
+
+	saveHelp := func(options map[string]*Option) {
+		for _, v := range options {
+			if _, ok := used[v]; ok {
+				continue
+			}
+
+			used[v] = struct{}{}
+
+			var oneArgs []string
+
+			for _, v := range v.showShort {
+				oneArgs = append(oneArgs, "-"+v)
+			}
+
+			for _, v := range v.showLong {
+				oneArgs = append(oneArgs, "--"+v)
+			}
+
+			opt := strings.Join(oneArgs, ",")
+			switch v.Pointer.Kind() {
+			case reflect.Bool:
+				h.Flags = append(h.Flags, showOption{Opt: opt, Usage: v.Usage})
+			default:
+				h.Options = append(h.Options, showOption{Opt: opt, Usage: v.Usage})
+			}
+		}
+	}
+
+	saveHelp(c.short)
+	saveHelp(c.long)
+}
+
+func (c *Clop) printHelpMessage() {
+	h := Help{}
+
+	c.genHelpMessage(&h)
+
+	err := h.output(os.Stdout)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
 func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) error {
 	options := strings.Split(clop, ";")
 
@@ -141,10 +195,12 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
 			c.setOption(name, option, c.long)
+			option.showLong = append(option.showLong, name)
 			findName = true
 		case strings.HasPrefix(opt, "-"):
 			name = opt[1:]
 			c.setOption(name, option, c.short)
+			option.showShort = append(option.showShort, name)
 			findName = true
 		case strings.HasPrefix(opt, "def="):
 			option.showDefValue = opt[4:]
