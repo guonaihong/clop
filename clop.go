@@ -20,19 +20,20 @@ var (
 type Clop struct {
 	short      map[string]*Option
 	long       map[string]*Option
-	shortRegex []*Option
-	longRegex  []*Option
+	shortRegex []*Option //TODO把值用起来
+	longRegex  []*Option //TODO把值用起来
 	args       []string
 	saveArgs   reflect.Value //TODO 测试args为空的情况
 }
 
 type Option struct {
-	Pointer      reflect.Value //存放需要修改的值的地址
+	Pointer      reflect.Value //存放需要修改的值的reflect.Value类型变量
 	Usage        string        //帮助信息
-	showDefValue string        //显示默认值
-	index        int           //表示参数优先级
+	showDefValue string        //显示默认值 TODO把值用起来
+	index        int           //表示参数优先级 TODO把值用起来
 	showShort    []string      //help显示的短选项
 	showLong     []string      //help显示的长选项
+	greedy       bool          //贪婪模式 -H a b c 等于-H a -H b -H c
 }
 
 func New(args []string) *Clop {
@@ -52,83 +53,127 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option) erro
 	return nil
 }
 
-func (c *Clop) getOption(arg string, index *int, numMinuses int) error {
+// 解析长选项
+func (c *Clop) parseLong(arg string, index *int) error {
+	var option *Option
+	option, _ = c.long[arg]
+	if option == nil {
+		return fmt.Errorf("not found")
+	}
+	value := ""
+	//TODO确认 posix
+	switch option.Pointer.Kind() {
+	//bool类型，不考虑false的情况
+	case reflect.Bool:
+		value = "true"
+	default:
+		// 如果是长选项
+		if *index+1 >= len(c.args) {
+			return errors.New("wrong long option")
+		}
+
+		for {
+
+			(*index)++
+			if *index >= len(c.args) {
+				return nil
+			}
+
+			value = c.args[*index]
+			// 如果打开贪婪模式，直到遇到-或者最后一个字符才结束
+			if strings.HasPrefix(value, "-") {
+				(*index)-- //回退这个选项
+				return nil
+			}
+
+			if err := setBase(value, option.Pointer); err != nil {
+				return err
+			}
+
+			if option.Pointer.Kind() != reflect.Slice && !option.greedy {
+				return nil
+			}
+		}
+	}
+	return setBase(value, option.Pointer)
+}
+
+func (c *Clop) parseShort(arg string, index *int) error {
 	var (
 		option     *Option
 		shortIndex int
 	)
-
-	// 取出option对象
-	switch numMinuses {
-	case 2: //长选项
-		if arg == "help" {
-			c.printHelpMessage()
-			os.Exit(0)
+	var a rune
+	find := false
+	for shortIndex, a = range arg {
+		//只支持ascii
+		if a >= utf8.RuneSelf {
+			return errors.New("Illegal character set")
 		}
-		option, _ = c.long[arg]
+
+		value := string(byte(a))
+		option, _ = c.short[value]
 		if option == nil {
-			return fmt.Errorf("not found")
+			continue
 		}
-		value := ""
-		//TODO确认 posix
+
+		find = true
 		switch option.Pointer.Kind() {
-		//bool类型，不考虑false的情况
 		case reflect.Bool:
-			value = "true"
+			if err := setBase("true", option.Pointer); err != nil {
+				return err
+			}
+
 		default:
-			// 如果是长
-			if numMinuses == 2 && *index+1 >= len(c.args) {
-				return errors.New("wrong long option")
-			}
+			shortIndex++
+			for value := arg; ; {
 
-			if numMinuses == 1 {
-				value = arg[shortIndex:]
-			} else {
+				if len(value[shortIndex:]) > 0 {
+					if err := setBase(value[shortIndex:], option.Pointer); err != nil {
+						return err
+					}
+
+					if option.Pointer.Kind() != reflect.Slice && !option.greedy {
+						return nil
+					}
+				}
+
+				shortIndex = 0
+
 				(*index)++
+				if *index >= len(c.args) {
+					return nil
+				}
 				value = c.args[*index]
-			}
 
-		}
-
-		// 赋值
-		return setBase(value, option.Pointer)
-	case 1: //短选项
-		var a rune
-		find := false
-		for shortIndex, a = range arg {
-			//只支持ascii
-			if a >= utf8.RuneSelf {
-				return errors.New("Illegal character set")
-			}
-
-			value := string(byte(a))
-			option, _ = c.short[value]
-			if option == nil {
-				continue
-			}
-
-			find = true
-			switch option.Pointer.Kind() {
-			case reflect.Bool:
-				if err := setBase("true", option.Pointer); err != nil {
-					return err
+				if strings.HasPrefix(value, "-") {
+					(*index)--
+					return nil
 				}
 
-			default:
-				shortIndex++
-				if err := setBase(arg[shortIndex:], option.Pointer); err != nil {
-					return err
-				}
 			}
-		}
 
-		if find {
-			return nil
 		}
 	}
 
-	if option == nil {
-		return fmt.Errorf("not found")
+	if find {
+		return nil
+	}
+	return nil
+}
+
+func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
+	// 输出帮助信息
+	if arg == "h" || arg == "help" {
+		c.printHelpMessage()
+		os.Exit(0)
+	}
+	// 取出option对象
+	switch numMinuses {
+	case 2: //长选项
+		return c.parseLong(arg, index)
+	case 1: //短选项
+		return c.parseShort(arg, index)
 	}
 
 	return nil
@@ -189,6 +234,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 
 	findName := false
 	for _, opt := range options {
+		opt = strings.TrimLeft(opt, " ")
 		name := ""
 		// TODO 检查name的长度
 		switch {
@@ -204,6 +250,8 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 			findName = true
 		case strings.HasPrefix(opt, "def="):
 			option.showDefValue = opt[4:]
+		case strings.HasPrefix(opt, "greedy"):
+			option.greedy = true
 		default:
 			return fmt.Errorf("%s:%s", ErrUnsupported, opt)
 		}
@@ -313,7 +361,7 @@ func (c *Clop) parseOneOption(index *int) error {
 	// TODO 考虑下要不要加上
 
 	a := arg[numMinuses:]
-	return c.getOption(a, index, numMinuses)
+	return c.getOptionAndSet(a, index, numMinuses)
 }
 
 func (c *Clop) bindStruct() error {

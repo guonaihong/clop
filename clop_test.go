@@ -1,6 +1,7 @@
 package clop
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -10,7 +11,8 @@ type testAPI struct {
 	need interface{}
 }
 
-func Test_API_cat_test(t *testing.T) {
+// 测试bool类型
+func Test_API_bool_test(t *testing.T) {
 	type cat struct {
 		NumberNonblank bool `clop:"-b;--number-nonblank"
 							usage:"number nonempty output lines, overrides"`
@@ -33,7 +35,7 @@ func Test_API_cat_test(t *testing.T) {
 		Args []string `clop:"args"`
 	}
 
-	for _, test := range []testAPI{
+	for index, test := range []testAPI{
 		// 测试短选项
 		{
 			func() cat {
@@ -78,14 +80,76 @@ func Test_API_cat_test(t *testing.T) {
 		},
 	} {
 
-		assert.Equal(t, test.got, test.need)
+		assert.Equal(t, test.got, test.need, fmt.Sprintf("index = %d", index))
 	}
 }
 
-func Test_API_grep_test(t *testing.T) {
+// 测试slice
+func Test_API_slice_test(t *testing.T) {
+	type curl struct {
+		Header []string `clop:"-H; --header; " 
+						 usage:"Pass custom header LINE to server (H)"`
+	}
+
+	type curl2 struct {
+		Header []string `clop:"-H; --header; greedy" 
+						 usage:"Pass custom header LINE to server (H)"`
+		Url   string   `clop:"--url" usage:"URL to work with"`
+		Count []string `clop:"-c; greedy" usage:"test count"`
+	}
+
+	for index, test := range []testAPI{
+		// 长选项
+		{
+			func() curl {
+				c := curl{}
+				p := New([]string{"--header", "h1:v1", "--header", "h2:v2", "--header", "h3:v3"})
+				err := p.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), curl{Header: []string{"h1:v1", "h2:v2", "h3:v3"}},
+		},
+		// 短选项
+		{
+			func() curl {
+				c := curl{}
+				p := New([]string{"-H", "h1:v1", "-H", "h2:v2", "-H", "h3:v3"})
+				err := p.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), curl{Header: []string{"h1:v1", "h2:v2", "h3:v3"}},
+		},
+		// 长选项 + 贪婪模式
+		{
+			func() curl2 {
+				c := curl2{}
+				p := New([]string{"--header", "h1:v1", "h2:v2", "h3:v3", "--url", "www.baidu.com"})
+				err := p.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), curl2{Header: []string{"h1:v1", "h2:v2", "h3:v3"}, Url: "www.baidu.com"},
+		},
+		// 短选项+贪婪模式
+		{
+			func() curl2 {
+				c := curl2{}
+				p := New([]string{"-H", "h1:v1", "h2:v2", "h3:v3", "--url", "www.baidu.com", "-cval1", "val2", "val3"})
+				err := p.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), curl2{Header: []string{"h1:v1", "h2:v2", "h3:v3"}, Url: "www.baidu.com", Count: []string{"val1", "val2", "val3"}},
+		},
+	} {
+		assert.Equal(t, test.got, test.need, fmt.Sprintf("test index = %d", index))
+	}
+}
+
+// 测试int类型
+func Test_API_int_test(t *testing.T) {
 	type grep struct {
 		BeforeContext int      `clop:"-B;--before-context" usage:"print NUM lines of leading context"`
 		AfterContext  int      `clop:"-A;--after-context"   usage:"print NUM lines of trailing context"`
+		MaxCount      int      `clop:"-m; --max-count" usage:"Stop reading the file after num matches"`
 		Args          []string `clop:"args"`
 	}
 
@@ -94,17 +158,18 @@ func Test_API_grep_test(t *testing.T) {
 		{
 			func() grep {
 				g := grep{}
-				cp := New([]string{"-B3", "--after-context", "1", "keyword", "join.txt"})
+				cp := New([]string{"-B3", "--after-context", "1", "keyword", "join.txt", "-m", "4"})
 				err := cp.Bind(&g)
 				assert.NoError(t, err)
 				return g
-			}(), grep{BeforeContext: 3, AfterContext: 1, Args: []string{"keyword", "join.txt"}},
+			}(), grep{BeforeContext: 3, AfterContext: 1, MaxCount: 4, Args: []string{"keyword", "join.txt"}},
 		},
 	} {
 		assert.Equal(t, test.need, test.got)
 	}
 }
 
+// 多行帮忙消息
 func Test_API_head_test(t *testing.T) {
 	type head struct {
 		Bytes int `clop:"-c;--bytes"
