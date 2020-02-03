@@ -12,18 +12,19 @@ func Test_Usage_tmpl(t *testing.T) {
 		About:   "guonaihong development",
 		Usage:   "test [FLAGS] [OPTIONS] --output <output> [--] [FILE]...",
 		Flags: []showOption{
-			{"-d, --debug", "Activate debug mode"},
-			{"-h, --help", "Prints help information"},
-			{"-V, --version", "Prints version information"},
-			{"-v, --verbose", "Verbose mode (-v, -vv, -vvv, etc.)"},
+			{"-d, --debug", "Activate debug mode", "DEBUG="},
+			{"-h, --help", "Prints help information", ""},
+			{"-V, --version", "Prints version information", ""},
+			{"-v, --verbose", "Verbose mode (-v, -vv, -vvv, etc.)", ""},
 		},
 		Options: []showOption{
-			{"-l, --level <level>...", "admin_level to consider"},
-			{"-c, --nb-cars <nb-cars>", "Number of cars"},
-			{"-o, --output <output>", "Output file"},
-			{"-s, --speed <speed>", "-s, --speed <speed>"},
+			{"-l, --level <level>...", "admin_level to consider", "LEVEL=debug"},
+			{"-c, --nb-cars <nb-cars>", "Number of cars", ""},
+			{"-o, --output <output>", "Output file", ""},
+			{"-s, --speed <speed>", "-s, --speed <speed>", ""},
 		},
-		Args: showOption{"<FILE>...", "Files to process"},
+		Args:       showOption{"<FILE>...", "Files to process", ""},
+		MaxNameLen: 30,
 	}
 
 	tmpl := newTemplate()

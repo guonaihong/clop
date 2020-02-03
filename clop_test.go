@@ -3,6 +3,7 @@ package clop
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -12,7 +13,7 @@ type testAPI struct {
 }
 
 // 测试bool类型
-func Test_API_bool_test(t *testing.T) {
+func Test_API_bool(t *testing.T) {
 	type cat struct {
 		NumberNonblank bool `clop:"-b;--number-nonblank"
 							usage:"number nonempty output lines, overrides"`
@@ -85,7 +86,7 @@ func Test_API_bool_test(t *testing.T) {
 }
 
 // 测试slice
-func Test_API_slice_test(t *testing.T) {
+func Test_API_slice(t *testing.T) {
 	type curl struct {
 		Header []string `clop:"-H; --header; " 
 						 usage:"Pass custom header LINE to server (H)"`
@@ -145,7 +146,7 @@ func Test_API_slice_test(t *testing.T) {
 }
 
 // 测试int类型
-func Test_API_int_test(t *testing.T) {
+func Test_API_int(t *testing.T) {
 	type grep struct {
 		BeforeContext int      `clop:"-B;--before-context" usage:"print NUM lines of leading context"`
 		AfterContext  int      `clop:"-A;--after-context"   usage:"print NUM lines of trailing context"`
@@ -169,8 +170,54 @@ func Test_API_int_test(t *testing.T) {
 	}
 }
 
-// 多行帮忙消息
-func Test_API_head_test(t *testing.T) {
+// 测试环境变量
+func Test_API_env(t *testing.T) {
+	type env struct {
+		Url   []string `clop:"-u; --url; env=CLOP-TEST-URL" usage:"URL to work with"`
+		Debug bool     `clop:"-d; --debug; env=CLOP-DEBUG" usage:"debug"`
+	}
+
+	for _, test := range []testAPI{
+		{
+			func() env {
+				e := env{}
+				defer func() {
+					os.Unsetenv("CLOP-TEST-URL")
+					os.Unsetenv("CLOP-DEBUG")
+				}()
+				os.Setenv("CLOP-TEST-URL", "godoc.org")
+				err := os.Setenv("CLOP-DEBUG", "")
+
+				assert.NoError(t, err)
+
+				p := New([]string{"-u", "qq.com", "-u", "baidu.com"})
+				err = p.Bind(&e)
+				assert.NoError(t, err)
+				return e
+			}(), env{Url: []string{"qq.com", "baidu.com", "godoc.org"}, Debug: true},
+		},
+		{
+			func() env {
+				defer func() {
+					os.Unsetenv("CLOP-DEBUG")
+				}()
+				err := os.Setenv("CLOP-DEBUG", "false")
+				assert.NoError(t, err)
+
+				e := env{}
+				p := New([]string{})
+				err = p.Bind(&e)
+				assert.NoError(t, err)
+				return e
+			}(), env{},
+		},
+	} {
+		assert.Equal(t, test.need, test.got)
+	}
+}
+
+// 多行usage消息
+func Test_API_head(t *testing.T) {
 	type head struct {
 		Bytes int `clop:"-c;--bytes"
 				   usage:" print the first NUM bytes of each file;
