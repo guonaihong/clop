@@ -20,6 +20,7 @@ var (
 type Clop struct {
 	short      map[string]*Option
 	long       map[string]*Option
+	env        map[string]*Option
 	shortRegex []*Option //TODO把值用起来
 	longRegex  []*Option //TODO把值用起来
 	args       []string
@@ -42,6 +43,7 @@ func New(args []string) *Clop {
 	return &Clop{
 		short: make(map[string]*Option),
 		long:  make(map[string]*Option),
+		env:   make(map[string]*Option),
 		args:  args,
 	}
 }
@@ -289,7 +291,9 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 		case strings.HasPrefix(opt, "greedy"):
 			option.greedy = true
 		case strings.HasPrefix(opt, "env="):
+			findName = true
 			option.envName = opt[4:]
+			c.setOption(option.envName, option, c.env)
 		default:
 			return fmt.Errorf("%s:%s", ErrUnsupported, opt)
 		}
@@ -404,17 +408,12 @@ func (c *Clop) parseOneOption(index *int) error {
 
 // 设置环境变量
 func (c *Clop) bindEnv() error {
-	for _, o := range c.short {
+	for _, o := range c.env {
 		if err := o.setEnv(); err != nil {
 			return err
 		}
 	}
 
-	for _, o := range c.long {
-		if err := o.setEnv(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

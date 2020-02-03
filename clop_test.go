@@ -173,8 +173,9 @@ func Test_API_int(t *testing.T) {
 // 测试环境变量
 func Test_API_env(t *testing.T) {
 	type env struct {
-		Url   []string `clop:"-u; --url; env=CLOP-TEST-URL" usage:"URL to work with"`
-		Debug bool     `clop:"-d; --debug; env=CLOP-DEBUG" usage:"debug"`
+		Url     []string `clop:"-u; --url; env=CLOP-TEST-URL" usage:"URL to work with"`
+		Debug   bool     `clop:"-d; --debug; env=CLOP-DEBUG" usage:"debug"`
+		MaxLine int      `clop:"env=CLOP-MAXLINE" usage:"test int"`
 	}
 
 	for _, test := range []testAPI{
@@ -195,6 +196,21 @@ func Test_API_env(t *testing.T) {
 				assert.NoError(t, err)
 				return e
 			}(), env{Url: []string{"qq.com", "baidu.com", "godoc.org"}, Debug: true},
+		},
+		{
+			func() env {
+				defer func() {
+					os.Unsetenv("CLOP-MAXLINE")
+				}()
+				err := os.Setenv("CLOP-MAXLINE", "3")
+				assert.NoError(t, err)
+
+				e := env{}
+				p := New([]string{})
+				err = p.Bind(&e)
+				assert.NoError(t, err)
+				return e
+			}(), env{MaxLine: 3},
 		},
 		{
 			func() env {
