@@ -18,13 +18,13 @@ var (
 
 // 长短选项分为short和long，优点遍历的数据会更少速度更快
 type Clop struct {
-	short      map[string]*Option
-	long       map[string]*Option
-	env        map[string]*Option
-	shortRegex []*Option //TODO把值用起来
-	longRegex  []*Option //TODO把值用起来
-	args       []string
-	saveArgs   reflect.Value //TODO 测试args为空的情况
+	short        map[string]*Option
+	long         map[string]*Option
+	checkEnv     map[string]struct{} //判断环境变量是否有重复注册的
+	checkArgs    map[string]struct{} //判断args是否重复注册
+	envAndArgs   []*Option           //存放环境变量和args
+	args         []string            //原始参数
+	unparsedArgs []string            //没有解析的args参数
 }
 
 type Option struct {
@@ -35,16 +35,17 @@ type Option struct {
 	showShort    []string      //help显示的短选项
 	showLong     []string      //help显示的长选项
 	envName      string        //环境变量
+	argsName     string        //args变量
 	greedy       bool          //贪婪模式 -H a b c 等于-H a -H b -H c
-	haveSetEnv   bool          //判断是否设置过环境变量
 }
 
 func New(args []string) *Clop {
 	return &Clop{
-		short: make(map[string]*Option),
-		long:  make(map[string]*Option),
-		env:   make(map[string]*Option),
-		args:  args,
+		short:     make(map[string]*Option),
+		long:      make(map[string]*Option),
+		checkEnv:  make(map[string]struct{}),
+		checkArgs: make(map[string]struct{}),
+		args:      args,
 	}
 }
 
@@ -103,12 +104,8 @@ func (c *Clop) parseLong(arg string, index *int) error {
 	return setBase(value, option.pointer)
 }
 
-// 设置环境变量
-func (o *Option) setEnv() (err error) {
-	if o.haveSetEnv {
-		return nil
-	}
-
+// 设置环境变量和参数
+func (o *Option) setEnvAndArgs(c *Clop) (err error) {
 	if len(o.envName) > 0 {
 		if v, ok := os.LookupEnv(o.envName); ok {
 			if o.pointer.Kind() == reflect.Bool {
@@ -117,12 +114,35 @@ func (o *Option) setEnv() (err error) {
 				}
 			}
 
-			err := setBase(v, o.pointer)
-			if err == nil {
-				o.haveSetEnv = true
-			}
-			return err
+			return setBase(v, o.pointer)
 		}
+	}
+
+	if len(o.argsName) > 0 {
+		if len(c.unparsedArgs) == 0 {
+			//todo修饰下报错信息
+			//return errors.New("unparsedargs == 0")
+			return nil
+		}
+
+		value := c.unparsedArgs[0]
+		switch o.pointer.Kind() {
+		case reflect.Slice:
+			for o.pointer.Kind() == reflect.Slice {
+				setBase(value, o.pointer)
+				c.unparsedArgs = c.unparsedArgs[1:]
+				if len(c.unparsedArgs) == 0 {
+					break
+				}
+
+				value = c.unparsedArgs[0]
+			}
+		default:
+			if err := setBase(value, o.pointer); err != nil {
+				return err
+			}
+		}
+
 	}
 	return nil
 }
@@ -270,7 +290,13 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 
 	option := &Option{usage: usage, pointer: v}
 
-	findName := false
+	const (
+		isShort = 1 << iota
+		isLong
+		isEnv
+		isArgs
+	)
+	flags := 0
 	for _, opt := range options {
 		opt = strings.TrimLeft(opt, " ")
 		name := ""
@@ -278,22 +304,44 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 		switch {
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
-			c.setOption(name, option, c.long)
+			if err := c.setOption(name, option, c.long); err != nil {
+				return err
+			}
 			option.showLong = append(option.showLong, name)
-			findName = true
+			flags |= isShort
 		case strings.HasPrefix(opt, "-"):
 			name = opt[1:]
-			c.setOption(name, option, c.short)
+			if err := c.setOption(name, option, c.short); err != nil {
+				return err
+			}
 			option.showShort = append(option.showShort, name)
-			findName = true
+			flags |= isLong
 		case strings.HasPrefix(opt, "def="):
 			option.showDefValue = opt[4:]
 		case strings.HasPrefix(opt, "greedy"):
 			option.greedy = true
 		case strings.HasPrefix(opt, "env="):
-			findName = true
+			flags |= isEnv
 			option.envName = opt[4:]
-			c.setOption(option.envName, option, c.env)
+			if _, ok := c.checkEnv[option.envName]; ok {
+				return fmt.Errorf("%s: env=%s", ErrDuplicateOptions, option.envName)
+			}
+			c.envAndArgs = append(c.envAndArgs, option)
+			c.checkEnv[option.envName] = struct{}{}
+		case strings.HasPrefix(opt, "args="):
+			// args是和长短选项互斥的功能
+			if flags&isShort > 0 || flags&isLong > 0 {
+				continue
+			}
+
+			flags |= isArgs
+			option.argsName = opt[5:]
+			if _, ok := c.checkArgs[option.argsName]; ok {
+				return fmt.Errorf("%s: args=%s", ErrDuplicateOptions, option.argsName)
+			}
+			c.checkArgs[option.argsName] = struct{}{}
+			c.envAndArgs = append(c.envAndArgs, option)
+
 		default:
 			return fmt.Errorf("%s:%s", ErrUnsupported, opt)
 		}
@@ -304,7 +352,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 
 	}
 
-	if !findName {
+	if flags&isShort == 0 && flags&isLong == 0 && flags&isEnv == 0 {
 		return fmt.Errorf("%s:%s", ErrNotFoundName, clop)
 	}
 
@@ -320,8 +368,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 		clop := Tag(sf.Tag).Get("clop")
 		usage := Tag(sf.Tag).Get("usage")
 
-		if clop == "args" {
-			c.saveArgs = v
+		if len(clop) == 0 && len(usage) == 0 {
 			return nil
 		}
 
@@ -335,13 +382,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 			}
 		}
 
-		// usage  不能为空
-		if len(usage) == 0 {
-			return ErrUsageEmpty
-		}
-
-		c.parseTagAndSetOption(clop, usage, v)
-		return nil
+		return c.parseTagAndSetOption(clop, usage, v)
 	}
 
 	typ := v.Type()
@@ -388,7 +429,7 @@ func (c *Clop) parseOneOption(index *int) error {
 	}
 
 	if arg[0] != '-' {
-		setBase(arg, c.saveArgs)
+		c.unparsedArgs = append(c.unparsedArgs, arg)
 		return nil
 	}
 
@@ -407,9 +448,9 @@ func (c *Clop) parseOneOption(index *int) error {
 }
 
 // 设置环境变量
-func (c *Clop) bindEnv() error {
-	for _, o := range c.env {
-		if err := o.setEnv(); err != nil {
+func (c *Clop) bindEnvAndArgs() error {
+	for _, o := range c.envAndArgs {
+		if err := o.setEnvAndArgs(c); err != nil {
 			return err
 		}
 	}
@@ -427,7 +468,7 @@ func (c *Clop) bindStruct() error {
 
 	}
 
-	return c.bindEnv()
+	return c.bindEnvAndArgs()
 }
 
 func (c *Clop) Bind(x interface{}) error {

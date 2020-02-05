@@ -16,24 +16,24 @@ type testAPI struct {
 func Test_API_bool(t *testing.T) {
 	type cat struct {
 		NumberNonblank bool `clop:"-b;--number-nonblank"
-                             usage:"number nonempty output lines, overrides"`
+                             	    usage:"number nonempty output lines, overrides"`
 
 		ShowEnds bool `clop:"-E;--show-ends"
-                       usage:"display $ at end of each line"`
+                               usage:"display $ at end of each line"`
 
 		Number bool `clop:"-n;--number"
-                     usage:"number all output lines"`
+                             usage:"number all output lines"`
 
 		SqueezeBlank bool `clop:"-s;--squeeze-blank"
-                           usage:"suppress repeated empty output lines"`
+                                   usage:"suppress repeated empty output lines"`
 
 		ShowTab bool `clop:"-T;--show-tabs"
-                      usage:"display TAB characters as ^I"`
+                              usage:"display TAB characters as ^I"`
 
 		ShowNonprinting bool `clop:"-v;--show-nonprinting"
-                              usage:"use ^ and M- notation, except for LFD and TAB" `
+                                      usage:"use ^ and M- notation, except for LFD and TAB" `
 
-		Args []string `clop:"args"`
+		Files []string `clop:"args=files"`
 	}
 
 	for index, test := range []testAPI{
@@ -77,7 +77,7 @@ func Test_API_bool(t *testing.T) {
 				err := cp.Bind(&c)
 				assert.NoError(t, err)
 				return c
-			}(), cat{Number: true, ShowTab: true, Args: []string{"r.go", "pool.c"}},
+			}(), cat{Number: true, ShowTab: true, Files: []string{"r.go", "pool.c"}},
 		},
 	} {
 
@@ -89,12 +89,12 @@ func Test_API_bool(t *testing.T) {
 func Test_API_slice(t *testing.T) {
 	type curl struct {
 		Header []string `clop:"-H; --header; " 
-						 usage:"Pass custom header LINE to server (H)"`
+				usage:"Pass custom header LINE to server (H)"`
 	}
 
 	type curl2 struct {
 		Header []string `clop:"-H; --header; greedy" 
-						 usage:"Pass custom header LINE to server (H)"`
+				usage:"Pass custom header LINE to server (H)"`
 		Url   string   `clop:"--url" usage:"URL to work with"`
 		Count []string `clop:"-c; greedy" usage:"test count"`
 	}
@@ -151,7 +151,7 @@ func Test_API_int(t *testing.T) {
 		BeforeContext int      `clop:"-B;--before-context" usage:"print NUM lines of leading context"`
 		AfterContext  int      `clop:"-A;--after-context"   usage:"print NUM lines of trailing context"`
 		MaxCount      int      `clop:"-m; --max-count" usage:"Stop reading the file after num matches"`
-		Args          []string `clop:"args"`
+		Files         []string `clop:"args=files"`
 	}
 
 	for _, test := range []testAPI{
@@ -163,7 +163,7 @@ func Test_API_int(t *testing.T) {
 				err := cp.Bind(&g)
 				assert.NoError(t, err)
 				return g
-			}(), grep{BeforeContext: 3, AfterContext: 1, MaxCount: 4, Args: []string{"keyword", "join.txt"}},
+			}(), grep{BeforeContext: 3, AfterContext: 1, MaxCount: 4, Files: []string{"keyword", "join.txt"}},
 		},
 	} {
 		assert.Equal(t, test.need, test.got)
