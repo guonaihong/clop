@@ -130,7 +130,7 @@ func Test_API_slice(t *testing.T) {
 				return c
 			}(), curl2{Header: []string{"h1:v1", "h2:v2", "h3:v3"}, Url: "www.baidu.com"},
 		},
-		// 短选项+贪婪模式
+		// 短选项 + 贪婪模式
 		{
 			func() curl2 {
 				c := curl2{}
@@ -230,6 +230,16 @@ func Test_API_env(t *testing.T) {
 	} {
 		assert.Equal(t, test.need, test.got)
 	}
+}
+
+// args
+func Test_API_args(t *testing.T) {
+	type testArgs struct {
+		Debug bool     `clop:"-d; --debug" usage:"open debug mode"`
+		Level string   `usage:"log level"`
+		Files []string `clop:"args=files" usage:"files to open"`
+	}
+
 }
 
 // 多行usage消息

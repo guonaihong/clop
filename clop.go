@@ -16,11 +16,9 @@ var (
 	ErrNotFoundName     = errors.New("no command line options found")
 )
 
-// 长短选项分为short和long，优点遍历的数据会更少速度更快
 type Clop struct {
-	short        map[string]*Option
-	long         map[string]*Option
-	checkEnv     map[string]struct{} //判断环境变量是否有重复注册的
+	shortAndLong map[string]*Option
+	checkEnv     map[string]struct{} //判断环境变量是否重复注册的
 	checkArgs    map[string]struct{} //判断args是否重复注册
 	envAndArgs   []*Option           //存放环境变量和args
 	args         []string            //原始参数
@@ -41,11 +39,10 @@ type Option struct {
 
 func New(args []string) *Clop {
 	return &Clop{
-		short:     make(map[string]*Option),
-		long:      make(map[string]*Option),
-		checkEnv:  make(map[string]struct{}),
-		checkArgs: make(map[string]struct{}),
-		args:      args,
+		shortAndLong: make(map[string]*Option),
+		checkEnv:     make(map[string]struct{}),
+		checkArgs:    make(map[string]struct{}),
+		args:         args,
 	}
 }
 
@@ -61,7 +58,7 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option) erro
 // 解析长选项
 func (c *Clop) parseLong(arg string, index *int) error {
 	var option *Option
-	option, _ = c.long[arg]
+	option, _ = c.shortAndLong[arg]
 	if option == nil {
 		return fmt.Errorf("not found")
 	}
@@ -161,7 +158,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		}
 
 		value := string(byte(a))
-		option, _ = c.short[value]
+		option, _ = c.shortAndLong[value]
 		if option == nil {
 			continue
 		}
@@ -230,7 +227,7 @@ func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 
 func (c *Clop) genHelpMessage(h *Help) {
 
-	used := make(map[*Option]struct{}, len(c.short))
+	used := make(map[*Option]struct{}, len(c.shortAndLong))
 
 	saveHelp := func(options map[string]*Option) {
 		for _, v := range options {
@@ -269,8 +266,7 @@ func (c *Clop) genHelpMessage(h *Help) {
 		}
 	}
 
-	saveHelp(c.short)
-	saveHelp(c.long)
+	saveHelp(c.shortAndLong)
 }
 
 func (c *Clop) printHelpMessage() {
@@ -304,14 +300,14 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 		switch {
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
-			if err := c.setOption(name, option, c.long); err != nil {
+			if err := c.setOption(name, option, c.shortAndLong); err != nil {
 				return err
 			}
 			option.showLong = append(option.showLong, name)
 			flags |= isShort
 		case strings.HasPrefix(opt, "-"):
 			name = opt[1:]
-			if err := c.setOption(name, option, c.short); err != nil {
+			if err := c.setOption(name, option, c.shortAndLong); err != nil {
 				return err
 			}
 			option.showShort = append(option.showShort, name)
