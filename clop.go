@@ -30,11 +30,12 @@ type Option struct {
 	usage        string        //帮助信息
 	showDefValue string        //显示默认值 TODO把值用起来
 	index        int           //表示参数优先级 TODO把值用起来
-	showShort    []string      //help显示的短选项
-	showLong     []string      //help显示的长选项
 	envName      string        //环境变量
 	argsName     string        //args变量
 	greedy       bool          //贪婪模式 -H a b c 等于-H a -H b -H c
+
+	showShort []string //help显示的短选项
+	showLong  []string //help显示的长选项
 }
 
 func New(args []string) *Clop {
@@ -138,6 +139,9 @@ func (o *Option) setEnvAndArgs(c *Clop) (err error) {
 			if err := setBase(value, o.pointer); err != nil {
 				return err
 			}
+			if len(c.unparsedArgs) > 0 {
+				c.unparsedArgs = c.unparsedArgs[1:]
+			}
 		}
 
 	}
@@ -227,6 +231,7 @@ func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 
 func (c *Clop) genHelpMessage(h *Help) {
 
+	// shortAndLong多个key指向一个option,需要used map去重
 	used := make(map[*Option]struct{}, len(c.shortAndLong))
 
 	saveHelp := func(options map[string]*Option) {
@@ -267,6 +272,26 @@ func (c *Clop) genHelpMessage(h *Help) {
 	}
 
 	saveHelp(c.shortAndLong)
+
+	for _, v := range c.envAndArgs {
+		opt := v.argsName
+		if len(opt) == 0 && len(v.envName) > 0 {
+			opt = v.envName
+		}
+
+		if len(opt) > 0 {
+			opt = "<" + opt + ">"
+		}
+		if h.MaxNameLen < len(opt) {
+			h.MaxNameLen = len(opt)
+		}
+
+		env := ""
+		if len(v.envName) > 0 {
+			env = v.envName + "=" + os.Getenv(v.envName)
+		}
+		h.Args = append(h.Args, showOption{Opt: opt, Usage: v.usage, Env: env})
+	}
 }
 
 func (c *Clop) printHelpMessage() {
@@ -479,4 +504,4 @@ func Bind(x interface{}) error {
 	return CommandLine.Bind(x)
 }
 
-var CommandLine = New(os.Args)
+var CommandLine = New(os.Args[1:])

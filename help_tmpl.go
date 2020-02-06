@@ -30,7 +30,7 @@ type Help struct {
 	Usage      string
 	Flags      []showOption
 	Options    []showOption
-	Args       showOption
+	Args       []showOption
 	MaxNameLen int
 }
 
@@ -51,9 +51,10 @@ var usageDefaultTmpl = `{{if gt (len .Version) 0}}{{.Version}}{{end}}
 {{if gt (len .Options) 0 }}Options:
 {{range $_, $flag:= .Options}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
 {{end}}{{end}}
-{{if gt (len .Args.Opt) 0}}Args:
-    {{.Args.Opt}}    {{.Args.Usage}}
-{{end}}`
+{{if gt (len .Args) 0}}Args:
+{{range $_, $flag:= .Args}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
+{{end}}{{end}}
+`
 
 func newTemplate() *template.Template {
 	tmpl := usageDefaultTmpl

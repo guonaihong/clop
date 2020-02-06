@@ -235,11 +235,36 @@ func Test_API_env(t *testing.T) {
 // args
 func Test_API_args(t *testing.T) {
 	type testArgs struct {
-		Debug bool     `clop:"-d; --debug" usage:"open debug mode"`
-		Level string   `usage:"log level"`
-		Files []string `clop:"args=files" usage:"files to open"`
+		Debug  bool     `clop:"-d; --debug" usage:"open debug mode"`
+		Level  string   `usage:"log level"`
+		Input  string   `clop:"args=input"`
+		Format string   `clop:"env=CLOP-FORMAT"`
+		Files  []string `clop:"args=files" usage:"files to open"`
 	}
 
+	for _, test := range []testAPI{
+		// 多个args参数
+		{
+			func() testArgs {
+				a := testArgs{}
+				defer func() {
+					os.Unsetenv("CLOP-FORMAT")
+				}()
+
+				err := os.Setenv("CLOP-FORMAT", "mp3")
+
+				assert.NoError(t, err)
+
+				p := New([]string{"-d", "--level", "info", "output.file", "a.txt", "b.txt"})
+				err = p.Bind(&a)
+				assert.NoError(t, err)
+				return a
+			}(), testArgs{Debug: true, Level: "info", Input: "output.file", Format: "mp3", Files: []string{"a.txt", "b.txt"}},
+		},
+	} {
+
+		assert.Equal(t, test.need, test.got)
+	}
 }
 
 // 多行usage消息

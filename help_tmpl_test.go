@@ -23,7 +23,10 @@ func Test_Usage_tmpl(t *testing.T) {
 			{"-o, --output <output>", "Output file", ""},
 			{"-s, --speed <speed>", "-s, --speed <speed>", ""},
 		},
-		Args:       showOption{"<FILE>...", "Files to process", ""},
+		Args: []showOption{
+			{"<api-url>", "[env: API_URL=]", ""},
+			{"<FILE>...", "Files to process", ""},
+		},
 		MaxNameLen: 30,
 	}
 
