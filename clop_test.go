@@ -267,6 +267,24 @@ func Test_API_args(t *testing.T) {
 	}
 }
 
+func Test_API_versionAndAbout(t *testing.T) {
+	type testVersionAndAbout struct {
+		V     string `clop:"version=v0.0.1"`
+		About string `clop:"about=a quick start example"`
+	}
+
+	va := testVersionAndAbout{}
+	CommandLine.exit = false
+	defer func() { CommandLine.exit = true }()
+
+	p := New([]string{"-h"})
+
+	err := p.Bind(&va)
+
+	assert.NoError(t, err)
+	assert.Equal(t, va, testVersionAndAbout{V: "v0.0.1", About: "a quick start example"})
+}
+
 // 多行usage消息
 func Test_API_head(t *testing.T) {
 	type head struct {

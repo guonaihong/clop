@@ -23,6 +23,11 @@ type Clop struct {
 	envAndArgs   []*Option           //存放环境变量和args
 	args         []string            //原始参数
 	unparsedArgs []string            //没有解析的args参数
+
+	about   string
+	version string
+
+	exit bool //测试需要用
 }
 
 type Option struct {
@@ -44,6 +49,7 @@ func New(args []string) *Clop {
 		checkEnv:     make(map[string]struct{}),
 		checkArgs:    make(map[string]struct{}),
 		args:         args,
+		exit:         true,
 	}
 }
 
@@ -216,7 +222,9 @@ func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 	// 输出帮助信息
 	if arg == "h" || arg == "help" {
 		c.printHelpMessage()
-		os.Exit(0)
+		if c.exit {
+			os.Exit(0)
+		}
 	}
 	// 取出option对象
 	switch numMinuses {
@@ -292,6 +300,9 @@ func (c *Clop) genHelpMessage(h *Help) {
 		}
 		h.Args = append(h.Args, showOption{Opt: opt, Usage: v.usage, Env: env})
 	}
+
+	h.Version = c.version
+	h.About = c.about
 }
 
 func (c *Clop) printHelpMessage() {
@@ -390,6 +401,18 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 		usage := Tag(sf.Tag).Get("usage")
 
 		if len(clop) == 0 && len(usage) == 0 {
+			return nil
+		}
+
+		// 如果是存放version的字段
+		if strings.HasPrefix(clop, "version=") {
+			c.version = clop[8:]
+			return nil
+		}
+
+		// 如果是存放about的字段
+		if strings.HasPrefix(clop, "about=") {
+			c.about = clop[6:]
 			return nil
 		}
 

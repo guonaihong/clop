@@ -8,9 +8,10 @@ import (
 
 func Test_Usage_tmpl(t *testing.T) {
 	help := Help{
-		Version: "clop v0.0.1",
-		About:   "guonaihong development",
-		Usage:   "test [FLAGS] [OPTIONS] --output <output> [--] [FILE]...",
+		ProcessName: "test",
+		Version:     "clop v0.0.1",
+		About:       "guonaihong development",
+		//Usage:       "--output <output> [--] [FILE]...",
 		Flags: []showOption{
 			{"-d, --debug", "Activate debug mode", "DEBUG="},
 			{"-h, --help", "Prints help information", ""},
