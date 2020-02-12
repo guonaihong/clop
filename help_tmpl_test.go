@@ -28,6 +28,10 @@ func Test_Usage_tmpl(t *testing.T) {
 			{"<api-url>", "[env: API_URL=]", ""},
 			{"<FILE>...", "Files to process", ""},
 		},
+		Subcommand: []showOption{
+			{"add", "Add file contents to the index", ""},
+			{"mv", "Move or rename a file, a directory, or a symlink", ""},
+		},
 		MaxNameLen: 30,
 	}
 

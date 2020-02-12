@@ -27,7 +27,13 @@ type Clop struct {
 	about   string
 	version string
 
-	exit bool //测试需要用
+	exit       bool //测试需要用
+	subcommand map[string]*Subcommand
+}
+
+// 使用递归定义，可以解决subcommand嵌套的情况
+type Subcommand struct {
+	*Clop
 }
 
 type Option struct {

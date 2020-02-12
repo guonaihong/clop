@@ -31,6 +31,7 @@ type Help struct {
 	Flags       []showOption
 	Options     []showOption
 	Args        []showOption
+	Subcommand  []showOption
 	MaxNameLen  int
 }
 
@@ -52,6 +53,9 @@ var usageDefaultTmpl = `{{if gt (len .Version) 0}}{{.Version}}{{end}}
 {{end}}{{end}}
 {{if gt (len .Args) 0}}Args:
 {{range $_, $flag:= .Args}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
+{{end}}{{end}}
+{{if gt (len .Subcommand) 0 }}Subcommand:
+{{range $_, $flag:= .Subcommand}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
 {{end}}{{end}}
 `
 
