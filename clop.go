@@ -17,7 +17,7 @@ var (
 )
 
 type Clop struct {
-	shortAndLong map[string]*Option
+	shortAndLong map[string]*Option  //存放长短选项
 	checkEnv     map[string]struct{} //判断环境变量是否重复注册的
 	checkArgs    map[string]struct{} //判断args是否重复注册
 	envAndArgs   []*Option           //存放环境变量和args
@@ -27,13 +27,14 @@ type Clop struct {
 	about   string
 	version string
 
-	exit       bool //测试需要用
-	subcommand map[string]*Subcommand
+	exit       bool                   //测试需要用, -h --help 是否退出进程
+	subcommand map[string]*Subcommand //子命令
 }
 
 // 使用递归定义，可以解决subcommand嵌套的情况
 type Subcommand struct {
 	*Clop
+	usage string
 }
 
 type Option struct {
@@ -293,6 +294,7 @@ func (c *Clop) genHelpMessage(h *Help) {
 			opt = v.envName
 		}
 
+		// args参数
 		if len(opt) > 0 {
 			opt = "<" + opt + ">"
 		}
@@ -305,6 +307,14 @@ func (c *Clop) genHelpMessage(h *Help) {
 			env = v.envName + "=" + os.Getenv(v.envName)
 		}
 		h.Args = append(h.Args, showOption{Opt: opt, Usage: v.usage, Env: env})
+	}
+
+	// 子命令
+	for opt, v := range c.subcommand {
+		if h.MaxNameLen < len(opt) {
+			h.MaxNameLen = len(opt)
+		}
+		h.Subcommand = append(h.Subcommand, showOption{Opt: opt, Usage: v.usage})
 	}
 
 	h.Version = c.version
@@ -323,6 +333,25 @@ func (c *Clop) printHelpMessage() {
 
 }
 
+func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, haveSubcommand bool) {
+	options := strings.Split(clop, ";")
+	for _, opt := range options {
+		switch {
+		case strings.HasPrefix(opt, "subcommand="):
+			if c.subcommand == nil {
+				c.subcommand = make(map[string]*Subcommand, 3)
+			}
+
+			name := opt[len("subcommand="):]
+			newClop := New(nil)
+			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
+			return newClop, true
+		}
+	}
+
+	return nil, false
+}
+
 func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) error {
 	options := strings.Split(clop, ";")
 
@@ -334,6 +363,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 		isEnv
 		isArgs
 	)
+
 	flags := 0
 	for _, opt := range options {
 		opt = strings.TrimLeft(opt, " ")
@@ -377,6 +407,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 			if _, ok := c.checkArgs[option.argsName]; ok {
 				return fmt.Errorf("%s: args=%s", ErrDuplicateOptions, option.argsName)
 			}
+
 			c.checkArgs[option.argsName] = struct{}{}
 			c.envAndArgs = append(c.envAndArgs, option)
 
@@ -402,9 +433,19 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 		v = v.Elem()
 	}
 
+	clop := Tag(sf.Tag).Get("clop")
+	usage := Tag(sf.Tag).Get("usage")
+
+	// 如果是subcommand
+	if v.Kind() == reflect.Struct {
+		if len(clop) != 0 {
+			if newClop, b := c.parseSubcommandTag(clop, usage); b {
+				c = newClop
+			}
+		}
+	}
+
 	if v.Kind() != reflect.Struct {
-		clop := Tag(sf.Tag).Get("clop")
-		usage := Tag(sf.Tag).Get("usage")
 
 		if len(clop) == 0 && len(usage) == 0 {
 			return nil
@@ -479,6 +520,14 @@ func (c *Clop) parseOneOption(index *int) error {
 	}
 
 	if arg[0] != '-' {
+		if len(c.subcommand) > 0 {
+			newClop, ok := c.subcommand[arg]
+			if !ok {
+				return errors.New("todo fail")
+			}
+			newClop.args = c.args[*index+1:]
+			return newClop.bindStruct()
+		}
 		c.unparsedArgs = append(c.unparsedArgs, arg)
 		return nil
 	}

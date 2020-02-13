@@ -47,6 +47,17 @@ func Test_API_bool(t *testing.T) {
 				return c
 			}(), cat{NumberNonblank: true, ShowEnds: true, Number: true, SqueezeBlank: true, ShowTab: true, ShowNonprinting: true},
 		},
+		// 测试短选项,就一个选项
+		{
+			func() cat {
+				c := cat{}
+				cp := New([]string{"-v"})
+				err := cp.Bind(&c)
+				assert.NoError(t, err)
+				return c
+			}(), cat{ShowNonprinting: true},
+		},
+		// 测试长选项
 		// 测试长选项
 		{
 			func() cat {
@@ -274,15 +285,54 @@ func Test_API_versionAndAbout(t *testing.T) {
 	}
 
 	va := testVersionAndAbout{}
-	CommandLine.exit = false
-	defer func() { CommandLine.exit = true }()
 
 	p := New([]string{"-h"})
+	p.exit = false
 
 	err := p.Bind(&va)
 
 	assert.NoError(t, err)
+	va.V = p.version
+	va.About = p.about
 	assert.Equal(t, va, testVersionAndAbout{V: "v0.0.1", About: "a quick start example"})
+}
+
+func Test_API_subcommand(t *testing.T) {
+	type add struct {
+		All   bool `clop:"-A; --all" usage:"add changes from all tracked and untracked files"`
+		Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+	}
+
+	type mv struct {
+		Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+	}
+
+	type git struct {
+		Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
+		Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+	}
+
+	// 测试正确的情况
+	for _, test := range []testAPI{
+		{
+			func() git {
+				g := git{}
+				p := New([]string{"add", "-Af", "a.txt"})
+				err := p.Bind(&g)
+				assert.NoError(t, err)
+				return g
+			}(), git{Add: add{All: true, Force: true}}},
+		{
+			func() git {
+				g := git{}
+				p := New([]string{"mv", "-f"})
+				err := p.Bind(&g)
+				assert.NoError(t, err)
+				return g
+			}(), git{Mv: mv{Force: true}}},
+	} {
+		assert.Equal(t, test.need, test.got)
+	}
 }
 
 // 多行usage消息
