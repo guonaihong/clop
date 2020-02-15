@@ -61,20 +61,20 @@ func New(args []string) *Clop {
 	}
 }
 
-func checkOptionName(name string) bool {
+func checkOptionName(name string) (byte, bool) {
 	for i := 0; i < len(name); i++ {
 		c := name[i]
 		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_' {
 			continue
 		}
-		return false
+		return c, false
 	}
-	return true
+	return 0, true
 }
 
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option) error {
-	if !checkOptionName(name) {
-		return fmt.Errorf("%w:%s", ErrOptionName, name)
+	if c, ok := checkOptionName(name); !ok {
+		return fmt.Errorf("%w:%s:unsupported characters found(%c)", ErrOptionName, name, c)
 	}
 
 	if _, ok := m[name]; ok {

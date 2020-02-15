@@ -390,7 +390,8 @@ func Test_Option_checkOptionName(t *testing.T) {
 		"c,--bytes",
 		"c --bytes",
 	} {
-		assert.False(t, checkOptionName(v))
+		_, b := checkOptionName(v)
+		assert.False(t, b)
 	}
 	//测试正确的情况
 	for _, v := range []string{
@@ -401,6 +402,7 @@ func Test_Option_checkOptionName(t *testing.T) {
 		"number-nonblank",
 		"pkg_add",
 	} {
-		assert.True(t, checkOptionName(v), fmt.Sprintf("option name is :%s", v))
+		_, b := checkOptionName(v)
+		assert.True(t, b, fmt.Sprintf("option name is :%s", v))
 	}
 }
