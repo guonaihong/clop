@@ -522,10 +522,11 @@ func (c *Clop) parseOneOption(index *int) error {
 	if arg[0] != '-' {
 		if len(c.subcommand) > 0 {
 			newClop, ok := c.subcommand[arg]
-			if !ok {
-				return errors.New("todo fail")
+			if !ok && len(c.envAndArgs) == 0 {
+				return fmt.Errorf("Unknown subcommand:%s", arg)
 			}
 			newClop.args = c.args[*index+1:]
+			c.args = c.args[0:0]
 			return newClop.bindStruct()
 		}
 		c.unparsedArgs = append(c.unparsedArgs, arg)

@@ -299,8 +299,9 @@ func Test_API_versionAndAbout(t *testing.T) {
 
 func Test_API_subcommand(t *testing.T) {
 	type add struct {
-		All   bool `clop:"-A; --all" usage:"add changes from all tracked and untracked files"`
-		Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+		All      bool     `clop:"-A; --all" usage:"add changes from all tracked and untracked files"`
+		Force    bool     `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+		Pathspec []string `clop:"args=pathspec"`
 	}
 
 	type mv struct {
@@ -321,7 +322,7 @@ func Test_API_subcommand(t *testing.T) {
 				err := p.Bind(&g)
 				assert.NoError(t, err)
 				return g
-			}(), git{Add: add{All: true, Force: true}}},
+			}(), git{Add: add{All: true, Force: true, Pathspec: []string{"a.txt"}}}},
 		{
 			func() git {
 				g := git{}
