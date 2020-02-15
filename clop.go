@@ -18,6 +18,9 @@ var (
 )
 
 type Clop struct {
+	//指向自己的root clop，如果设置了subcommand这个值是有意义的
+	//非root Clop指向root，root Clop值为nil
+	root         *Clop
 	shortAndLong map[string]*Option  //存放长短选项
 	checkEnv     map[string]struct{} //判断环境变量是否重复注册的
 	checkArgs    map[string]struct{} //判断args是否重复注册
@@ -25,14 +28,16 @@ type Clop struct {
 	args         []string            //原始参数
 	unparsedArgs []string            //没有解析的args参数
 
-	about   string
-	version string
+	about   string //about信息
+	version string //版本信息
 
 	exit       bool                   //测试需要用, -h --help 是否退出进程
 	subcommand map[string]*Subcommand //子命令
+
+	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用
 }
 
-// 使用递归定义，可以解决subcommand嵌套的情况
+// 使用递归定义，可以很轻检地解决subcommand嵌套的情况
 type Subcommand struct {
 	*Clop
 	usage string
@@ -53,14 +58,16 @@ type Option struct {
 
 func New(args []string) *Clop {
 	return &Clop{
-		shortAndLong: make(map[string]*Option),
-		checkEnv:     make(map[string]struct{}),
-		checkArgs:    make(map[string]struct{}),
-		args:         args,
-		exit:         true,
+		shortAndLong:    make(map[string]*Option),
+		checkEnv:        make(map[string]struct{}),
+		checkArgs:       make(map[string]struct{}),
+		isSetSubcommand: make(map[string]struct{}), //TODO后期优化下内存,只有root需要初始化
+		args:            args,
+		exit:            true,
 	}
 }
 
+// 检查option 名字的合法性
 func checkOptionName(name string) (byte, bool) {
 	for i := 0; i < len(name); i++ {
 		c := name[i]
@@ -70,6 +77,11 @@ func checkOptionName(name string) (byte, bool) {
 		return c, false
 	}
 	return 0, true
+}
+
+func (c *Clop) IsSetSubcommand(subcommand string) bool {
+	_, ok := c.isSetSubcommand[subcommand]
+	return ok
 }
 
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option) error {
@@ -349,6 +361,14 @@ func (c *Clop) printHelpMessage() {
 
 }
 
+func (c *Clop) getRoot() (root *Clop) {
+	root = c
+	if c.root != nil {
+		root = c.root
+	}
+	return root
+}
+
 func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, haveSubcommand bool) {
 	options := strings.Split(clop, ";")
 	for _, opt := range options {
@@ -360,6 +380,8 @@ func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, hav
 
 			name := opt[len("subcommand="):]
 			newClop := New(nil)
+
+			newClop.root = c.getRoot()
 			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
 			return newClop, true
 		}
@@ -542,9 +564,12 @@ func (c *Clop) parseOneOption(index *int) error {
 	if arg[0] != '-' {
 		if len(c.subcommand) > 0 {
 			newClop, ok := c.subcommand[arg]
+			// 子命令和args都是没有-号开头，没有设置env或args就当是没有注册过的子命令，直接报错
 			if !ok && len(c.envAndArgs) == 0 {
 				return fmt.Errorf("Unknown subcommand:%s", arg)
 			}
+
+			c.getRoot().isSetSubcommand[arg] = struct{}{}
 			newClop.args = c.args[*index+1:]
 			c.args = c.args[0:0]
 			return newClop.bindStruct()
@@ -578,6 +603,7 @@ func (c *Clop) bindEnvAndArgs() error {
 	return nil
 }
 
+// bind结构体
 func (c *Clop) bindStruct() error {
 
 	for i := 0; i < len(c.args); i++ {
@@ -601,6 +627,10 @@ func (c *Clop) Bind(x interface{}) error {
 
 func Bind(x interface{}) error {
 	return CommandLine.Bind(x)
+}
+
+func IsSetSubcommand(subcommand string) bool {
+	return CommandLine.IsSetSubcommand(subcommand)
 }
 
 var CommandLine = New(os.Args[1:])

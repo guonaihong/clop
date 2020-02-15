@@ -320,6 +320,8 @@ func Test_API_subcommand(t *testing.T) {
 				p := New([]string{"add", "-Af", "a.txt"})
 				err := p.Bind(&g)
 				assert.NoError(t, err)
+				assert.True(t, p.IsSetSubcommand("add"))
+				assert.False(t, p.IsSetSubcommand("mv"))
 				return g
 			}(), git{Add: add{All: true, Force: true, Pathspec: []string{"a.txt"}}}},
 		{
@@ -328,6 +330,8 @@ func Test_API_subcommand(t *testing.T) {
 				p := New([]string{"mv", "-f"})
 				err := p.Bind(&g)
 				assert.NoError(t, err)
+				assert.False(t, p.IsSetSubcommand("add"))
+				assert.True(t, p.IsSetSubcommand("mv"))
 				return g
 			}(), git{Mv: mv{Force: true}}},
 	} {
