@@ -16,22 +16,22 @@ type testAPI struct {
 func Test_API_bool(t *testing.T) {
 	type cat struct {
 		NumberNonblank bool `clop:"-b;--number-nonblank"
-                             	    usage:"number nonempty output lines, overrides"`
+		                     usage:"number nonempty output lines, overrides"`
 
 		ShowEnds bool `clop:"-E;--show-ends"
-                               usage:"display $ at end of each line"`
+		               usage:"display $ at end of each line"`
 
 		Number bool `clop:"-n;--number"
-                             usage:"number all output lines"`
+		             usage:"number all output lines"`
 
 		SqueezeBlank bool `clop:"-s;--squeeze-blank"
-                                   usage:"suppress repeated empty output lines"`
+		                   usage:"suppress repeated empty output lines"`
 
 		ShowTab bool `clop:"-T;--show-tabs"
-                              usage:"display TAB characters as ^I"`
+		              usage:"display TAB characters as ^I"`
 
 		ShowNonprinting bool `clop:"-v;--show-nonprinting"
-                                      usage:"use ^ and M- notation, except for LFD and TAB" `
+		                      usage:"use ^ and M- notation, except for LFD and TAB" `
 
 		Files []string `clop:"args=files"`
 	}
@@ -57,7 +57,6 @@ func Test_API_bool(t *testing.T) {
 				return c
 			}(), cat{ShowNonprinting: true},
 		},
-		// 测试长选项
 		// 测试长选项
 		{
 			func() cat {
@@ -363,4 +362,44 @@ func Test_API_head(t *testing.T) {
 	cp := New([]string{})
 	err := cp.register(&h)
 	assert.NoError(t, err)
+}
+
+// 测试错误的情况
+func Test_API_fail(t *testing.T) {
+	type cat struct {
+		NumberNonblank bool `clop:"-b, --number-nonblank"
+		                     usage:"number nonempty output lines, overrides"`
+	}
+
+	for range []struct{}{
+
+		func() struct{} {
+			c := cat{}
+			cp := New([]string{"-vTsnEb"})
+			err := cp.Bind(&c)
+			assert.Error(t, err)
+			return struct{}{}
+		}(),
+	} {
+	}
+}
+
+func Test_Option_checkOptionName(t *testing.T) {
+	// 测试错误的情况
+	for _, v := range []string{
+		"c,--bytes",
+		"c --bytes",
+	} {
+		assert.False(t, checkOptionName(v))
+	}
+	//测试正确的情况
+	for _, v := range []string{
+		"1",
+		"2",
+		"c",
+		"bytes",
+		"number-nonblank",
+	} {
+		assert.True(t, checkOptionName(v), fmt.Sprintf("option name is :%s", v))
+	}
 }

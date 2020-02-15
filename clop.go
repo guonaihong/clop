@@ -14,6 +14,7 @@ var (
 	ErrUsageEmpty       = errors.New("usage cannot be empty")
 	ErrUnsupported      = errors.New("unsupported command")
 	ErrNotFoundName     = errors.New("no command line options found")
+	ErrOptionName       = errors.New("Illegal option name")
 )
 
 type Clop struct {
@@ -60,9 +61,26 @@ func New(args []string) *Clop {
 	}
 }
 
+func checkOptionName(name string) bool {
+	for i := 0; i < len(name); i++ {
+		c := name[i] | 0x20
+		if c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-' || c == '_' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option) error {
+	/*
+		if !checkOptionName(name) {
+			return fmt.Errorf("%w:%s", ErrOptionName, name)
+		}
+	*/
+
 	if _, ok := m[name]; ok {
-		return fmt.Errorf("%s:%s", ErrDuplicateOptions, name)
+		return fmt.Errorf("%w:%s", ErrDuplicateOptions, name)
 	}
 
 	m[name] = option
@@ -370,6 +388,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 		name := ""
 		// TODO 检查name的长度
 		switch {
+		//注册长选项
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
 			if err := c.setOption(name, option, c.shortAndLong); err != nil {
@@ -377,6 +396,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 			}
 			option.showLong = append(option.showLong, name)
 			flags |= isShort
+			//注册短选项
 		case strings.HasPrefix(opt, "-"):
 			name = opt[1:]
 			if err := c.setOption(name, option, c.shortAndLong); err != nil {
@@ -486,7 +506,9 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 
 		//fmt.Printf("my.index(%d)(1.%s)-->(2.%s)\n", i, Tag(sf.Tag).Get("clop"), Tag(sf.Tag).Get("usage"))
 		//fmt.Printf("stdlib.index(%d)(1.%s)-->(2.%s)\n", i, sf.Tag.Get("clop"), sf.Tag.Get("usage"))
-		c.registerCore(v.Field(i), sf)
+		if err := c.registerCore(v.Field(i), sf); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -505,9 +527,7 @@ func (c *Clop) register(x interface{}) error {
 		return fmt.Errorf("%s:got(%T)", ErrNotPointerType, v.Type())
 	}
 
-	c.registerCore(v, emptyField)
-
-	return nil
+	return c.registerCore(v, emptyField)
 }
 
 func (c *Clop) parseOneOption(index *int) error {
@@ -515,7 +535,6 @@ func (c *Clop) parseOneOption(index *int) error {
 	arg := c.args[*index]
 
 	if len(arg) == 0 {
-		//TODO return fail
 		return errors.New("fail option")
 	}
 
