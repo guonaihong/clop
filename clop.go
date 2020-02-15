@@ -63,8 +63,8 @@ func New(args []string) *Clop {
 
 func checkOptionName(name string) bool {
 	for i := 0; i < len(name); i++ {
-		c := name[i] | 0x20
-		if c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-' || c == '_' {
+		c := name[i]
+		if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_' {
 			continue
 		}
 		return false
@@ -73,11 +73,9 @@ func checkOptionName(name string) bool {
 }
 
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option) error {
-	/*
-		if !checkOptionName(name) {
-			return fmt.Errorf("%w:%s", ErrOptionName, name)
-		}
-	*/
+	if !checkOptionName(name) {
+		return fmt.Errorf("%w:%s", ErrOptionName, name)
+	}
 
 	if _, ok := m[name]; ok {
 		return fmt.Errorf("%w:%s", ErrDuplicateOptions, name)
@@ -385,6 +383,9 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 	flags := 0
 	for _, opt := range options {
 		opt = strings.TrimLeft(opt, " ")
+		if len(opt) == 0 {
+			continue //跳过空值
+		}
 		name := ""
 		// TODO 检查name的长度
 		switch {
@@ -432,7 +433,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 			c.envAndArgs = append(c.envAndArgs, option)
 
 		default:
-			return fmt.Errorf("%s:%s", ErrUnsupported, opt)
+			return fmt.Errorf("%s:(%s) clop(%s)", ErrUnsupported, opt, clop)
 		}
 
 		if strings.HasPrefix(opt, "-") && len(name) == 0 {
@@ -441,7 +442,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 
 	}
 
-	if flags&isShort == 0 && flags&isLong == 0 && flags&isEnv == 0 {
+	if flags&isShort == 0 && flags&isLong == 0 && flags&isEnv == 0 && flags&isArgs == 0 {
 		return fmt.Errorf("%s:%s", ErrNotFoundName, clop)
 	}
 

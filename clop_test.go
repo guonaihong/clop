@@ -399,6 +399,7 @@ func Test_Option_checkOptionName(t *testing.T) {
 		"c",
 		"bytes",
 		"number-nonblank",
+		"pkg_add",
 	} {
 		assert.True(t, checkOptionName(v), fmt.Sprintf("option name is :%s", v))
 	}
