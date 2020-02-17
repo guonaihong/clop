@@ -35,6 +35,7 @@ type Clop struct {
 	subcommand map[string]*Subcommand //子命令
 
 	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用
+	procName        string
 }
 
 // 使用递归定义，可以很轻检地解决subcommand嵌套的情况
@@ -77,6 +78,11 @@ func checkOptionName(name string) (byte, bool) {
 		return c, false
 	}
 	return 0, true
+}
+
+func (c *Clop) SetProcName(procName string) *Clop {
+	c.procName = procName
+	return c
 }
 
 func (c *Clop) IsSetSubcommand(subcommand string) bool {
@@ -345,6 +351,7 @@ func (c *Clop) genHelpMessage(h *Help) {
 		h.Subcommand = append(h.Subcommand, showOption{Opt: opt, Usage: v.usage})
 	}
 
+	h.ProcessName = c.procName
 	h.Version = c.version
 	h.About = c.about
 }
@@ -626,6 +633,7 @@ func (c *Clop) Bind(x interface{}) error {
 }
 
 func Bind(x interface{}) error {
+	CommandLine.SetProcName(os.Args[0])
 	return CommandLine.Bind(x)
 }
 

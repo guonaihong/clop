@@ -56,7 +56,7 @@ var usageDefaultTmpl = `{{if gt (len .Version) 0}}
 {{.Version}}{{end}}{{if gt (len .About) 0}}
 {{.About}}{{end}}{{if or (gt (len .Flags) 0) (gt (len .Options) 0) (gt (len .Args) 0)}}
 Usage:
-    {{if gt (len .ProcessName) 0}}{{.ProcessName}}{{end}} {{if gt (len .Flags) 0}}[Flags]{{end}}{{if gt (len .Options) 0}}[Options] {{end}}{{range $_, $flag := .Args}}{{$flag.Opt}}{{end}}{{end}}{{$maxNameLen :=.MaxNameLen}}{{if gt (len .Flags) 0 }}
+    {{if gt (len .ProcessName) 0}}{{.ProcessName}} {{end}}{{if gt (len .Flags) 0}}[Flags] {{end}}{{if gt (len .Options) 0}}[Options] {{end}}{{range $_, $flag := .Args}}{{$flag.Opt}} {{end}}{{end}}{{$maxNameLen :=.MaxNameLen}}{{if gt (len .Flags) 0 }}
 
 Flags:
 {{range $_, $flag:= .Flags}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
