@@ -35,6 +35,7 @@ type Clop struct {
 	subcommand map[string]*Subcommand //子命令
 
 	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用
+	procName        string
 }
 
 // 使用递归定义，可以很轻检地解决subcommand嵌套的情况
@@ -77,6 +78,11 @@ func checkOptionName(name string) (byte, bool) {
 		return c, false
 	}
 	return 0, true
+}
+
+func (c *Clop) SetProcName(procName string) *Clop {
+	c.procName = procName
+	return c
 }
 
 func (c *Clop) IsSetSubcommand(subcommand string) bool {
@@ -256,10 +262,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 	// 输出帮助信息
 	if arg == "h" || arg == "help" {
-		c.printHelpMessage()
-		if c.exit {
-			os.Exit(0)
-		}
+		c.Usage()
 	}
 	// 取出option对象
 	switch numMinuses {
@@ -345,8 +348,16 @@ func (c *Clop) genHelpMessage(h *Help) {
 		h.Subcommand = append(h.Subcommand, showOption{Opt: opt, Usage: v.usage})
 	}
 
+	h.ProcessName = c.procName
 	h.Version = c.version
 	h.About = c.about
+}
+
+func (c *Clop) Usage() {
+	c.printHelpMessage()
+	if c.exit {
+		os.Exit(0)
+	}
 }
 
 func (c *Clop) printHelpMessage() {
@@ -625,7 +636,12 @@ func (c *Clop) Bind(x interface{}) error {
 	return c.bindStruct()
 }
 
+func Usage() {
+	CommandLine.Usage()
+}
+
 func Bind(x interface{}) error {
+	CommandLine.SetProcName(os.Args[0])
 	return CommandLine.Bind(x)
 }
 

@@ -3,12 +3,17 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 
 ## 状态
 可以体验现有功能，第一个版本3月底发布.
+## feature
+* posix风格命令行支持，支持命令组合，方便实现普通posix 标准命令
+* 子命令支持，方便实现git风格命令
+* 结构体绑定，没有中间商一样的回调函数
 
 ## 内容
 - [Installation](#Installation)
 - [Quick start](#quick-start)
 	- [code](#quick-start-code)
 	- [help message](#help-message)
+- [1. subcommand usage](#subcommand)
 
 ## Installation
 ```
@@ -58,8 +63,9 @@ func main() {
 ```
 ### help message
 ```console
+
 Usage:
-     [Flags]<files>
+    ./cat [Flags] <files> 
 
 Flags:
     -E,--show-ends           display $ at end of each line 
@@ -70,5 +76,44 @@ Flags:
     -v,--show-nonprinting    use ^ and M- notation, except for LFD and TAB 
 
 Args:
-    <files> 
+    <files>
+```
+
+### subcommand
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/guonaihong/clop"
+)
+
+type add struct {
+	All      bool     `clop:"-A; --all" usage:"add changes from all tracked and untracked files"`
+	Force    bool     `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+	Pathspec []string `clop:"args=pathspec"`
+}
+
+type mv struct {
+	Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+}
+
+type git struct {
+	Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
+	Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+}
+
+func main() {
+	g := git{}
+	clop.Bind(&g)
+	fmt.Printf("git:%#v\n", g)
+	fmt.Printf("git:set mv(%t) or set add(%t)\n", clop.IsSetSubcommand("mv"), clop.IsSetSubcommand("add"))
+}
+// run:
+// ./git add -f
+
+// output:
+// git:main.git{Add:main.add{All:false, Force:true, Pathspec:[]string(nil)}, Mv:main.mv{Force:false}}
+// git:set mv(false) or set add(true)
+
 ```
