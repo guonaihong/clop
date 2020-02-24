@@ -262,10 +262,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 	// 输出帮助信息
 	if arg == "h" || arg == "help" {
-		c.printHelpMessage()
-		if c.exit {
-			os.Exit(0)
-		}
+		c.Usage()
 	}
 	// 取出option对象
 	switch numMinuses {
@@ -354,6 +351,13 @@ func (c *Clop) genHelpMessage(h *Help) {
 	h.ProcessName = c.procName
 	h.Version = c.version
 	h.About = c.about
+}
+
+func (c *Clop) Usage() {
+	c.printHelpMessage()
+	if c.exit {
+		os.Exit(0)
+	}
 }
 
 func (c *Clop) printHelpMessage() {
@@ -630,6 +634,10 @@ func (c *Clop) Bind(x interface{}) error {
 	}
 
 	return c.bindStruct()
+}
+
+func Usage() {
+	CommandLine.Usage()
 }
 
 func Bind(x interface{}) error {
