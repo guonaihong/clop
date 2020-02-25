@@ -1,6 +1,7 @@
 package clop
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -334,6 +335,18 @@ func Test_API_subcommand(t *testing.T) {
 				assert.True(t, p.IsSetSubcommand("mv"))
 				return g
 			}(), git{Mv: mv{Force: true}}},
+		{
+			func() git {
+				g := git{}
+				p := New([]string{"-h"})
+				b := &bytes.Buffer{}
+				p.w = b
+				p.exit = false
+				err := p.Bind(&g)
+				assert.NoError(t, err)
+				assert.True(t, checkUsage(b))
+				return g
+			}(), git{Add: add{}}},
 	} {
 		assert.Equal(t, test.need, test.got)
 	}

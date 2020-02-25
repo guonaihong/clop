@@ -3,6 +3,7 @@ package clop
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -36,6 +37,8 @@ type Clop struct {
 
 	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用
 	procName        string
+
+	w io.Writer
 }
 
 // 使用递归定义，可以很轻检地解决subcommand嵌套的情况
@@ -65,6 +68,7 @@ func New(args []string) *Clop {
 		isSetSubcommand: make(map[string]struct{}), //TODO后期优化下内存,只有root需要初始化
 		args:            args,
 		exit:            true,
+		w:               os.Stdout,
 	}
 }
 
@@ -365,7 +369,7 @@ func (c *Clop) printHelpMessage() {
 
 	c.genHelpMessage(&h)
 
-	err := h.output(os.Stdout)
+	err := h.output(c.w)
 	if err != nil {
 		panic(err)
 	}
