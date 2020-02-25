@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"os"
 	"testing"
 )
@@ -316,6 +317,7 @@ func Test_API_subcommand(t *testing.T) {
 	// 测试正确的情况
 	for _, test := range []testAPI{
 		{
+			// 测试add子命令
 			func() git {
 				g := git{}
 				p := New([]string{"add", "-Af", "a.txt"})
@@ -326,6 +328,7 @@ func Test_API_subcommand(t *testing.T) {
 				return g
 			}(), git{Add: add{All: true, Force: true, Pathspec: []string{"a.txt"}}}},
 		{
+			// 测试mv子命令
 			func() git {
 				g := git{}
 				p := New([]string{"mv", "-f"})
@@ -336,6 +339,7 @@ func Test_API_subcommand(t *testing.T) {
 				return g
 			}(), git{Mv: mv{Force: true}}},
 		{
+			// 测试-h 输出的Usage
 			func() git {
 				g := git{}
 				p := New([]string{"-h"})
@@ -347,6 +351,12 @@ func Test_API_subcommand(t *testing.T) {
 				assert.True(t, checkUsage(b))
 				return g
 			}(), git{Add: add{}}},
+		{
+			// 测试mv子命令
+			func() git {
+				// TODO 测试代码
+				return g
+			}(), git{Mv: mv{}}},
 	} {
 		assert.Equal(t, test.need, test.got)
 	}

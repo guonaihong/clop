@@ -395,7 +395,7 @@ func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, hav
 
 			name := opt[len("subcommand="):]
 			newClop := New(nil)
-
+			newClop.SetProcName(name)
 			newClop.root = c.getRoot()
 			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
 			return newClop, true
