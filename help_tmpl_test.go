@@ -8,19 +8,26 @@ import (
 	"testing"
 )
 
-func checkUsage(t *testing.T, b *bytes.Buffer) bool {
+func checkUsage(b *bytes.Buffer) bool {
 	buf := b.Bytes()
 	lines := bytes.Split(buf, []byte("\n"))
 
+	haveUsage := false
 	for _, l := range lines {
 		l = bytes.TrimSpace(l)
-		if bytes.HasPrefix(l, []byte("test")) {
-			if bytes.Index(l, []byte("Subcommand")) == -1 {
+		if bytes.HasPrefix(l, []byte("Usage:")) {
+			haveUsage = true
+			continue
+		}
+
+		if haveUsage {
+			if bytes.Index(l, []byte("<Subcommand>")) == -1 {
 				return false
 			}
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -60,5 +67,5 @@ func Test_Usage_tmpl(t *testing.T) {
 	err := tmpl.Execute(w, help)
 	assert.NoError(t, err)
 
-	assert.True(t, checkUsage(t, &b))
+	assert.True(t, checkUsage(&b))
 }
