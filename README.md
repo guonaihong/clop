@@ -4,6 +4,7 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 ## 状态
 可以体验现有功能，第一个版本3月底发布.
 ## feature
+* 支持环境变量绑定
 * posix风格命令行支持，支持命令组合，方便实现普通posix 标准命令
 * 子命令支持，方便实现git风格命令
 * 结构体绑定，没有中间商一样的回调函数
@@ -13,7 +14,8 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 - [Quick start](#quick-start)
 	- [code](#quick-start-code)
 	- [help message](#help-message)
-- [1. subcommand usage](#subcommand)
+- [1. How to use required tags](#required tags)
+- [2. How to implement git style commands](#subcommand)
 
 ## Installation
 ```
@@ -60,10 +62,7 @@ func main() {
 	fmt.Printf("%#v, %s\n", c, err)
 }
 
-```
-### help message
-```console
-
+/*
 Usage:
     ./cat [Flags] <files> 
 
@@ -77,6 +76,28 @@ Flags:
 
 Args:
     <files>
+*/
+```
+
+### required flag
+```go
+ package main
+
+import (
+    "fmt"
+    "github.com/guonaihong/clop"
+)
+
+type curl struct {
+    Url string `clop:"-u; --url" usage:"url" valid:"required"`
+}
+
+func main() {
+
+    c := curl{}
+    clop.Bind(&c)
+}
+
 ```
 
 ### subcommand

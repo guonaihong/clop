@@ -633,7 +633,11 @@ func (c *Clop) Bind(x interface{}) error {
 		return err
 	}
 
-	return c.bindStruct()
+	if err := c.bindStruct(); err != nil {
+		return err
+	}
+
+	return valid.ValidateStruct(x)
 }
 
 func Usage() {
