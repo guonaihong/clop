@@ -14,7 +14,7 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 - [Quick start](#quick-start)
 	- [code](#quick-start-code)
 	- [help message](#help-message)
-- [1. How to use required tags](#required tags)
+- [1. How to use required tags](#required-flag)
 - [2. How to implement git style commands](#subcommand)
 
 ## Installation
