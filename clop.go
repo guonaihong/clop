@@ -85,6 +85,11 @@ func checkOptionName(name string) (byte, bool) {
 	return 0, true
 }
 
+func (c *Clop) SetExit(exit bool) *Clop {
+	c.exit = exit
+	return c
+}
+
 func (c *Clop) SetProcName(procName string) *Clop {
 	c.procName = procName
 	return c

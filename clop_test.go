@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"io"
 	"os"
 	"testing"
 )
@@ -287,8 +286,7 @@ func Test_API_versionAndAbout(t *testing.T) {
 
 	va := testVersionAndAbout{}
 
-	p := New([]string{"-h"})
-	p.exit = false
+	p := New([]string{"-h"}).SetExit(false)
 
 	err := p.Bind(&va)
 
@@ -342,21 +340,14 @@ func Test_API_subcommand(t *testing.T) {
 			// 测试-h 输出的Usage
 			func() git {
 				g := git{}
-				p := New([]string{"-h"})
+				p := New([]string{"-h"}).SetExit(false)
 				b := &bytes.Buffer{}
 				p.w = b
-				p.exit = false
 				err := p.Bind(&g)
 				assert.NoError(t, err)
 				assert.True(t, checkUsage(b))
 				return g
 			}(), git{Add: add{}}},
-		{
-			// 测试mv子命令
-			func() git {
-				// TODO 测试代码
-				return g
-			}(), git{Mv: mv{}}},
 	} {
 		assert.Equal(t, test.need, test.got)
 	}
@@ -402,7 +393,7 @@ func Test_API_fail(t *testing.T) {
 
 		func() struct{} {
 			c := cat{}
-			cp := New([]string{"-vTsnEb"})
+			cp := New([]string{"-vTsnEb"}).SetExit(false)
 			err := cp.Bind(&c)
 			assert.Error(t, err)
 			return struct{}{}
@@ -421,7 +412,7 @@ func Test_API_valid(t *testing.T) {
 
 		func() struct{} {
 			c := cat{}
-			cp := New([]string{})
+			cp := New([]string{}).SetExit(false)
 			err := cp.Bind(&c)
 			assert.Error(t, err)
 			return struct{}{}
