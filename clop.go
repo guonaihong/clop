@@ -3,6 +3,7 @@ package clop
 import (
 	"errors"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"io"
 	"os"
 	"reflect"
@@ -632,16 +633,33 @@ func (c *Clop) bindStruct() error {
 	return c.bindEnvAndArgs()
 }
 
-func (c *Clop) Bind(x interface{}) error {
-	if err := c.register(x); err != nil {
+func (c *Clop) Bind(x interface{}) (err error) {
+	defer func() {
+		if err != nil && c.exit {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}()
+
+	if err = c.register(x); err != nil {
 		return err
 	}
 
-	if err := c.bindStruct(); err != nil {
+	if err = c.bindStruct(); err != nil {
 		return err
 	}
 
-	return valid.ValidateStruct(x)
+	err = valid.ValidateStruct(x)
+	if err != nil {
+		errs := err.(validator.ValidationErrors)
+
+		for _, e := range errs {
+			// can translate each error one at a time.
+			return errors.New(e.Translate(valid.trans))
+		}
+
+	}
+	return err
 }
 
 func Usage() {

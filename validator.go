@@ -1,6 +1,9 @@
 package clop
 
 import (
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
+	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"reflect"
 	"sync"
 
@@ -12,6 +15,7 @@ var valid *defaultValidator = &defaultValidator{}
 type defaultValidator struct {
 	once     sync.Once
 	validate *validator.Validate
+	trans    ut.Translator
 }
 
 func (v *defaultValidator) ValidateStruct(obj interface{}) error {
@@ -35,8 +39,25 @@ func (v *defaultValidator) Engine() interface{} {
 
 func (v *defaultValidator) lazyinit() {
 	v.once.Do(func() {
+		en := en.New()
+		uni := ut.New(en, en)
+
 		v.validate = validator.New()
 		v.validate.SetTagName("valid")
+		v.trans, _ = uni.GetTranslator("en")
+		en_translations.RegisterDefaultTranslations(v.validate, v.trans)
+
+		v.validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+			return "Error!: " + fld.Tag.Get("clop")
+		})
+
+		v.validate.RegisterTranslation("required", v.trans, func(ut ut.Translator) error {
+			return ut.Add("required", "{0} must have a value!", true) // see universal-translator for details
+		}, func(ut ut.Translator, fe validator.FieldError) string {
+			t, _ := ut.T("required", fe.Field())
+
+			return t
+		})
 
 		// add any custom validations etc. here
 	})
