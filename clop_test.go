@@ -448,6 +448,27 @@ func Test_API_valid(t *testing.T) {
 	}
 }
 
+func Test_API_valid_fail(t *testing.T) {
+	type cat struct {
+		NumberNonblank bool `clop:"-b; --number-nonblank" valid:"xxx"
+		                     usage:"number nonempty output lines, overrides"`
+	}
+
+	for range []struct{}{
+
+		func() struct{} {
+			c := cat{}
+			cp := New([]string{}).SetExit(false)
+			assert.Panics(t, func() {
+				err := cp.Bind(&c)
+				assert.NoError(t, err)
+			})
+			return struct{}{}
+		}(),
+	} {
+	}
+}
+
 func Test_Option_checkOptionName(t *testing.T) {
 	// 测试错误的情况
 	for _, v := range []string{
