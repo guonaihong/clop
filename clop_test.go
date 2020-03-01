@@ -284,16 +284,43 @@ func Test_API_versionAndAbout(t *testing.T) {
 		About string `clop:"about=a quick start example"`
 	}
 
-	va := testVersionAndAbout{}
+	type testVersionAndAbout2 struct {
+		V     bool `clop:"version=v0.0.1"`
+		About bool `clop:"about=a quick start example"`
+	}
 
-	p := New([]string{"-h"}).SetExit(false)
+	for range []error{
+		func() error {
+			va := testVersionAndAbout{}
 
-	err := p.Bind(&va)
+			p := New([]string{"-h"}).SetExit(false)
 
-	assert.NoError(t, err)
-	va.V = p.version
-	va.About = p.about
-	assert.Equal(t, va, testVersionAndAbout{V: "v0.0.1", About: "a quick start example"})
+			err := p.Bind(&va)
+
+			assert.NoError(t, err)
+			if err != nil {
+				return err
+			}
+			va.V = p.version
+			va.About = p.about
+			assert.Equal(t, va, testVersionAndAbout{V: "v0.0.1", About: "a quick start example"})
+			return nil
+		}(),
+
+		func() error {
+			va := testVersionAndAbout2{}
+			p := New([]string{"-h"}).SetExit(false)
+			err := p.Bind(&va)
+			assert.NoError(t, err)
+			if err != nil {
+				return err
+			}
+			assert.Equal(t, p.version, "v0.0.1")
+			assert.Equal(t, p.about, "a quick start example")
+			return nil
+		}(),
+	} {
+	}
 }
 
 func Test_API_subcommand(t *testing.T) {
