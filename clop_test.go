@@ -402,6 +402,7 @@ func Test_API_fail(t *testing.T) {
 	}
 }
 
+// 设置数据效验
 func Test_API_valid(t *testing.T) {
 	type cat struct {
 		NumberNonblank bool `clop:"-b; --number-nonblank" valid:"required"
@@ -441,5 +442,36 @@ func Test_Option_checkOptionName(t *testing.T) {
 	} {
 		_, b := checkOptionName(v)
 		assert.True(t, b, fmt.Sprintf("option name is :%s", v))
+	}
+}
+
+// 设置default值
+func Test_DefautlValue(t *testing.T) {
+	type defaultExample struct {
+		Int          int       `default:"1"`
+		Float64      float64   `default:"3.64"`
+		Float32      float32   `default:"3.32"`
+		SliceString  []string  `default:"[\"one\", \"two\"]"`
+		SliceInt     []int     `default:"[1,2,3,4,5]"`
+		SliceFloat64 []float64 `default:"[1.1,2.2,3.3,4.4,5.5]"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			got := defaultExample{}
+			need := defaultExample{
+				Int:          1,
+				Float64:      3.64,
+				Float32:      3.32,
+				SliceString:  []string{"one", "two"},
+				SliceInt:     []int{1, 2, 3, 4, 5},
+				SliceFloat64: []float64{1.1, 2.2, 3.3, 4.4, 5.5},
+			}
+			p := New([]string{}).SetExit(false)
+			p.Bind(&got)
+			assert.Equal(t, got, need)
+			return struct{}{}
+		}(),
+	} {
 	}
 }

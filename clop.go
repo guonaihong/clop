@@ -511,6 +511,13 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 
 	if v.Kind() != reflect.Struct {
 
+		def := Tag(sf.Tag).Get("default")
+		if len(def) > 0 {
+			if err := setDefaultValue(def, v); err != nil {
+				return err
+			}
+		}
+
 		if len(clop) == 0 && len(usage) == 0 {
 			return nil
 		}
