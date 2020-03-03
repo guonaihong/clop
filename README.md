@@ -15,7 +15,8 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 	- [code](#quick-start-code)
 	- [help message](#help-message)
 - [1. How to use required tags](#required-flag)
-- [2. How to implement git style commands](#subcommand)
+- [2. default value](#set-default-value)
+- [3. How to implement git style commands](#subcommand)
 
 ## Installation
 ```
@@ -98,6 +99,37 @@ func main() {
     clop.Bind(&c)
 }
 
+```
+### set default value
+使用default标签就可以设置默认值
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/guonaihong/clop"
+)
+
+type defaultExample struct {
+	Int          int       `default:"1"`
+	Float64      float64   `default:"3.64"`
+	Float32      float32   `default:"3.32"`
+	SliceString  []string  `default:"[\"one\", \"two\"]"`
+	SliceInt     []int     `default:"[1,2,3,4,5]"`
+	SliceFloat64 []float64 `default:"[1.1,2.2,3.3,4.4,5.5]"`
+}
+
+func main() {
+	de := defaultExample{}
+	clop.Bind(&de)
+	fmt.Printf("%v\n", de)
+}
+/*
+run:
+    ./use_def
+output:
+    {1 3.64 3.32 [one two] [1 2 3 4 5] [1.1 2.2 3.3 4.4 5.5]};
+*/
 ```
 
 ### subcommand
