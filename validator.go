@@ -48,7 +48,7 @@ func (v *defaultValidator) lazyinit() {
 		en_translations.RegisterDefaultTranslations(v.validate, v.trans)
 
 		v.validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-			return "Error!: " + fld.Tag.Get("clop")
+			return "Error: " + fld.Tag.Get("clop")
 		})
 
 		v.validate.RegisterTranslation("required", v.trans, func(ut ut.Translator) error {
