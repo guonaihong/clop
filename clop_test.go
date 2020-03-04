@@ -523,3 +523,65 @@ func Test_DefautlValue(t *testing.T) {
 	} {
 	}
 }
+
+// 测试重复值报错
+func Test_DupTag(t *testing.T) {
+	type dup struct {
+		Number  int `clop:"-n; --number" usage:"number"`
+		Number2 int `clop:"-n" usage:"number"`
+	}
+
+	type dup2 struct {
+		Number  int `clop:"-n; --number" usage:"number"`
+		Number2 int `clop:"--number" usage:"number"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			var o bytes.Buffer
+			d := dup{}
+			p := New([]string{}).SetOutput(&o).SetExit(false)
+			err := p.Bind(&d)
+			assert.Error(t, err)
+			assert.Equal(t, o.String(), "-n is already in use\n")
+			return struct{}{}
+		}(),
+		func() struct{} {
+			var o bytes.Buffer
+			d := dup2{}
+			p := New([]string{}).SetOutput(&o).SetExit(false)
+			err := p.Bind(&d)
+			assert.Error(t, err)
+			assert.Equal(t, o.String(), "--number is already in use\n")
+			return struct{}{}
+		}(),
+	} {
+	}
+}
+
+// 测试没有注册的选项
+func Test_unregistered(t *testing.T) {
+	type cat struct {
+		Number int `clop:"-n; --number" usage:"number"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			var o bytes.Buffer
+			c := cat{}
+			p := New([]string{"-x"}).SetOutput(&o).SetExit(false)
+			err := p.Bind(&c)
+			assert.Error(t, err)
+			return struct{}{}
+		}(),
+		func() struct{} {
+			var o bytes.Buffer
+			c := cat{}
+			p := New([]string{"--www"}).SetOutput(&o).SetExit(false)
+			err := p.Bind(&c)
+			assert.Error(t, err)
+			return struct{}{}
+		}(),
+	} {
+	}
+}

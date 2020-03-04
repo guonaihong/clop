@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ErrDuplicateOptions = errors.New("duplicate command options")
+	ErrDuplicateOptions = errors.New("is already in use")
 	ErrUsageEmpty       = errors.New("usage cannot be empty")
 	ErrUnsupported      = errors.New("unsupported command")
 	ErrNotFoundName     = errors.New("no command line options found")
@@ -90,6 +90,11 @@ func (c *Clop) SetExit(exit bool) *Clop {
 	return c
 }
 
+func (c *Clop) SetOutput(w io.Writer) *Clop {
+	c.w = w
+	return c
+}
+
 func (c *Clop) SetProcName(procName string) *Clop {
 	c.procName = procName
 	return c
@@ -100,13 +105,17 @@ func (c *Clop) IsSetSubcommand(subcommand string) bool {
 	return ok
 }
 
-func (c *Clop) setOption(name string, option *Option, m map[string]*Option) error {
+func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long bool) error {
 	if c, ok := checkOptionName(name); !ok {
 		return fmt.Errorf("%w:%s:unsupported characters found(%c)", ErrOptionName, name, c)
 	}
 
 	if _, ok := m[name]; ok {
-		return fmt.Errorf("%w:%s", ErrDuplicateOptions, name)
+		name = "-" + name
+		if long {
+			name = "-" + name
+		}
+		return fmt.Errorf("%s %w", name, ErrDuplicateOptions)
 	}
 
 	m[name] = option
@@ -118,7 +127,11 @@ func (c *Clop) parseLong(arg string, index *int) error {
 	var option *Option
 	option, _ = c.shortAndLong[arg]
 	if option == nil {
-		return fmt.Errorf("not found")
+		return fmt.Errorf(`error: Found argument '--%s' which wasn't expected, or isn't valid in this context
+
+For more information try --help
+`,
+			arg)
 	}
 
 	value := ""
@@ -266,13 +279,19 @@ func (c *Clop) parseShort(arg string, index *int) error {
 	if find {
 		return nil
 	}
-	return nil
+
+	return fmt.Errorf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context
+
+For more information try --help
+`,
+		arg)
 }
 
 func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 	// 输出帮助信息
 	if arg == "h" || arg == "help" {
 		c.Usage()
+		return nil
 	}
 	// 取出option对象
 	switch numMinuses {
@@ -435,7 +454,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 		//注册长选项
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
-			if err := c.setOption(name, option, c.shortAndLong); err != nil {
+			if err := c.setOption(name, option, c.shortAndLong, true); err != nil {
 				return err
 			}
 			option.showLong = append(option.showLong, name)
@@ -443,7 +462,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 			//注册短选项
 		case strings.HasPrefix(opt, "-"):
 			name = opt[1:]
-			if err := c.setOption(name, option, c.shortAndLong); err != nil {
+			if err := c.setOption(name, option, c.shortAndLong, false); err != nil {
 				return err
 			}
 			option.showShort = append(option.showShort, name)
@@ -647,9 +666,11 @@ func (c *Clop) bindStruct() error {
 
 func (c *Clop) Bind(x interface{}) (err error) {
 	defer func() {
-		if err != nil && c.exit {
-			fmt.Println(err)
-			os.Exit(1)
+		if err != nil {
+			fmt.Fprintln(c.w, err)
+			if c.exit {
+				os.Exit(1)
+			}
 		}
 	}()
 
