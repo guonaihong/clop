@@ -51,7 +51,7 @@ type Subcommand struct {
 type Option struct {
 	pointer      reflect.Value //存放需要修改的值的reflect.Value类型变量
 	usage        string        //帮助信息
-	showDefValue string        //显示默认值 TODO把值用起来
+	showDefValue string        //显示默认值
 	index        int           //表示参数优先级 TODO把值用起来
 	envName      string        //环境变量
 	argsName     string        //args变量
@@ -126,11 +126,8 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long
 func (c *Clop) parseLong(arg string, index *int) error {
 	var option *Option
 	option, _ = c.shortAndLong[arg]
-	if option == nil {
-		return fmt.Errorf(`error: Found argument '--%s' which wasn't expected, or isn't valid in this context
-
-For more information try --help
-`,
+	if option == nil || len(arg) == 1 {
+		return fmt.Errorf(`error: Found argument '--%s' which wasn't expected, or isn't valid in this context`,
 			arg)
 	}
 
@@ -234,7 +231,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		value := string(byte(a))
 		option, _ = c.shortAndLong[value]
 		if option == nil {
-			continue
+			return fmt.Errorf("error: Found argument '-%s' which wasn't expected, or isn't valid in this context", value)
 		}
 
 		find = true
@@ -280,10 +277,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		return nil
 	}
 
-	return fmt.Errorf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context
-
-For more information try --help
-`,
+	return fmt.Errorf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context`,
 		arg)
 }
 
@@ -339,9 +333,9 @@ func (c *Clop) genHelpMessage(h *Help) {
 
 			switch v.pointer.Kind() {
 			case reflect.Bool:
-				h.Flags = append(h.Flags, showOption{Opt: opt, Usage: v.usage, Env: env})
+				h.Flags = append(h.Flags, showOption{Opt: opt, Usage: v.usage, Env: env, Default: v.showDefValue})
 			default:
-				h.Options = append(h.Options, showOption{Opt: opt, Usage: v.usage, Env: env})
+				h.Options = append(h.Options, showOption{Opt: opt, Usage: v.usage, Env: env, Default: v.showDefValue})
 			}
 		}
 	}
@@ -430,10 +424,10 @@ func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, hav
 	return nil, false
 }
 
-func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) error {
+func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, v reflect.Value) error {
 	options := strings.Split(clop, ";")
 
-	option := &Option{usage: usage, pointer: v}
+	option := &Option{usage: usage, pointer: v, showDefValue: def}
 
 	const (
 		isShort = 1 << iota
@@ -467,8 +461,6 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, v reflect.Value) 
 			}
 			option.showShort = append(option.showShort, name)
 			flags |= isLong
-		case strings.HasPrefix(opt, "def="):
-			option.showDefValue = opt[4:]
 		case strings.HasPrefix(opt, "greedy"):
 			option.greedy = true
 		case strings.HasPrefix(opt, "env="):
@@ -563,7 +555,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 			}
 		}
 
-		return c.parseTagAndSetOption(clop, usage, v)
+		return c.parseTagAndSetOption(clop, usage, def, v)
 	}
 
 	typ := v.Type()
@@ -668,6 +660,7 @@ func (c *Clop) Bind(x interface{}) (err error) {
 	defer func() {
 		if err != nil {
 			fmt.Fprintln(c.w, err)
+			fmt.Fprintln(c.w, "For more information try --help")
 			if c.exit {
 				os.Exit(1)
 			}

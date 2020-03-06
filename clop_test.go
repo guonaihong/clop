@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -399,8 +400,7 @@ func Test_API_head(t *testing.T) {
 		Verbose bool `clop:"-v;--verbose"
 				   usage:"always print headers giving file names"`
 
-		ZeroTerminated byte `clop:"-z;--zero-terminated;def='\n'" 
-							usage:"line delimiter is NUL, not newline"`
+		ZeroTerminated byte `clop:"-z;--zero-terminated"  usage:"line delimiter is NUL, not newline"`
 	}
 
 	h := head{}
@@ -493,15 +493,15 @@ func Test_Option_checkOptionName(t *testing.T) {
 	}
 }
 
-// 设置default值
+// 测试默认(default 标签)值
 func Test_DefautlValue(t *testing.T) {
 	type defaultExample struct {
-		Int          int       `default:"1"`
-		Float64      float64   `default:"3.64"`
-		Float32      float32   `default:"3.32"`
-		SliceString  []string  `default:"[\"one\", \"two\"]"`
-		SliceInt     []int     `default:"[1,2,3,4,5]"`
-		SliceFloat64 []float64 `default:"[1.1,2.2,3.3,4.4,5.5]"`
+		Int          int       `clop:"--int" default:"1"`
+		Float64      float64   `clop:"--float64" default:"3.64"`
+		Float32      float32   `clop:"--float32" default:"3.32"`
+		SliceString  []string  `clop:"--slice-string" default:"[\"one\", \"two\"]"`
+		SliceInt     []int     `clop:"--slice-int" default:"[1,2,3,4,5]"`
+		SliceFloat64 []float64 `clop:"--slice-float64" default:"[1.1,2.2,3.3,4.4,5.5]"`
 	}
 
 	for range []struct{}{
@@ -518,6 +518,29 @@ func Test_DefautlValue(t *testing.T) {
 			p := New([]string{}).SetExit(false)
 			p.Bind(&got)
 			assert.Equal(t, got, need)
+			return struct{}{}
+		}(),
+		func() struct{} {
+			got := defaultExample{}
+			var out bytes.Buffer
+			p := New([]string{"-h"}).SetExit(false).SetOutput(&out)
+			err := p.Bind(&got)
+			assert.NoError(t, err)
+
+			needTest := []string{
+				`1`,
+				`3.64`,
+				`3.32`,
+				`["one", "two"]`,
+				`[1,2,3,4,5]`,
+				`[1.1,2.2,3.3,4.4,5.5]`,
+			}
+
+			helpMessage := out.String()
+			for _, v := range needTest {
+				pos := strings.Index(helpMessage, v)
+				assert.NotEqual(t, pos, -1, fmt.Sprintf("search (%s) not found", v))
+			}
 			return struct{}{}
 		}(),
 	} {
@@ -543,7 +566,7 @@ func Test_DupTag(t *testing.T) {
 			p := New([]string{}).SetOutput(&o).SetExit(false)
 			err := p.Bind(&d)
 			assert.Error(t, err)
-			assert.Equal(t, o.String(), "-n is already in use\n")
+			assert.Equal(t, o.String(), "-n is already in use\nFor more information try --help\n")
 			return struct{}{}
 		}(),
 		func() struct{} {
@@ -552,7 +575,7 @@ func Test_DupTag(t *testing.T) {
 			p := New([]string{}).SetOutput(&o).SetExit(false)
 			err := p.Bind(&d)
 			assert.Error(t, err)
-			assert.Equal(t, o.String(), "--number is already in use\n")
+			assert.Equal(t, o.String(), "--number is already in use\nFor more information try --help\n")
 			return struct{}{}
 		}(),
 	} {
@@ -583,5 +606,28 @@ func Test_unregistered(t *testing.T) {
 			return struct{}{}
 		}(),
 	} {
+	}
+}
+
+// 测试长短选项错误的情况
+func Test_shortLongFail(t *testing.T) {
+	type shortLong struct {
+		Debug bool `clop:"-d; --debug" usage:"debug mode"`
+	}
+
+	for _, err := range []error{
+		func() error {
+			s := shortLong{}
+			p := New([]string{"-debug"}).SetExit(false)
+			return p.Bind(&s)
+		}(),
+		func() error {
+			s := shortLong{}
+			p := New([]string{"--d"}).SetExit(false)
+			return p.Bind(&s)
+		}(),
+	} {
+
+		assert.Error(t, err)
 	}
 }

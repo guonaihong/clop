@@ -20,9 +20,10 @@ func AddSpace(max, cur int) string {
 }
 
 type showOption struct {
-	Opt   string
-	Usage string
-	Env   string
+	Opt     string
+	Usage   string
+	Env     string
+	Default string
 }
 
 type Help struct {
@@ -59,10 +60,10 @@ Usage:
     {{if gt (len .ProcessName) 0}}{{.ProcessName}} {{end}}{{if gt (len .Flags) 0}}[Flags] {{end}}{{if gt (len .Options) 0}}[Options] {{end}}{{range $_, $flag := .Args}}{{$flag.Opt}} {{end}}{{if gt (len .Subcommand) 0}}<Subcommand> {{end}}{{end}}{{$maxNameLen :=.MaxNameLen}}{{if gt (len .Flags) 0 }}
 
 Flags:
-{{range $_, $flag:= .Flags}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
+{{range $_, $flag:= .Flags}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}}{{if gt (len $flag.Env) 0 }} [env: {{$flag.Env}}]{{end}}{{if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}]{{end}}
 {{end}}{{end}}{{if gt (len .Options) 0 }}
 Options:
-{{range $_, $flag:= .Options}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
+{{range $_, $flag:= .Options}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}{{if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}]{{end}}
 {{end}}{{end}}{{if gt (len .Args) 0}}
 Args:
 {{range $_, $flag:= .Args}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}

@@ -4,10 +4,15 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 ## 状态
 可以体验现有功能，第一个版本3月底发布.
 ## feature
-* 支持环境变量绑定
-* posix风格命令行支持，支持命令组合，方便实现普通posix 标准命令
-* 子命令支持，方便实现git风格命令
-* 结构体绑定，没有中间商一样的回调函数
+* 支持环境变量绑定 ```env DEBUG=xx ./proc```
+* 支持参数搜集 ```cat a.txt b.txt```，可以把```a.txt, b.txt```散装成员归归类，收集到你指定的结构体成员里
+* 支持短选项```proc -d``` 或者长选项```proc --debug```不在话下
+* posix风格命令行支持，支持命令组合```ls -ltr```是```ls -l -t -r```简写形式，方便实现普通posix 标准命令
+* 子命令支持，方便实现git风格子命令```git add ```，简洁的子命令注册方式，只要会写结构提就行，3,4,5到无穷尽子命令也支持，只要你喜欢，用上clop就可以实现
+* 默认值支持```default:"1"```，支持多种数据类型，让你省去类型转换的烦恼
+* 贴心的重复命令报错
+* 严格的短选项，长选项报错。避免二义性选项诞生
+* 效验模式支持，不需要写一堆的```if x!= "" ``` or ```if y!=0```浪费青春的代码
 
 ## 内容
 - [Installation](#Installation)
@@ -15,7 +20,7 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 	- [code](#quick-start-code)
 	- [help message](#help-message)
 - [1. How to use required tags](#required-flag)
-- [2. default value](#set-default-value)
+- [2.Set default value](#set-default-value)
 - [3. How to implement git style commands](#subcommand)
 
 ## Installation
@@ -100,38 +105,35 @@ func main() {
 }
 
 ```
-### set default value
-使用default标签就可以设置默认值
+#### set default value
+可以使用default tag设置默认值，普通类型直接写，复合类型用json表示
 ```go
 package main
 
 import (
-	"fmt"
-	"github.com/guonaihong/clop"
+    "fmt"
+    "github.com/guonaihong/clop"
 )
 
 type defaultExample struct {
-	Int          int       `default:"1"`
-	Float64      float64   `default:"3.64"`
-	Float32      float32   `default:"3.32"`
-	SliceString  []string  `default:"[\"one\", \"two\"]"`
-	SliceInt     []int     `default:"[1,2,3,4,5]"`
-	SliceFloat64 []float64 `default:"[1.1,2.2,3.3,4.4,5.5]"`
+    Int          int       `default:"1"`
+    Float64      float64   `default:"3.64"`
+    Float32      float32   `default:"3.32"`
+    SliceString  []string  `default:"[\"one\", \"two\"]"`
+    SliceInt     []int     `default:"[1,2,3,4,5]"`
+    SliceFloat64 []float64 `default:"[1.1,2.2,3.3,4.4,5.5]"`
 }
 
 func main() {
-	de := defaultExample{}
-	clop.Bind(&de)
-	fmt.Printf("%v\n", de)
+    de := defaultExample{}
+    clop.Bind(&de)
+    fmt.Printf("%v\n", de) 
 }
-/*
-run:
-    ./use_def
-output:
-    {1 3.64 3.32 [one two] [1 2 3 4 5] [1.1 2.2 3.3 4.4 5.5]};
-*/
+// run
+//         ./use_def
+// output:
+//         {1 3.64 3.32 [one two] [1 2 3 4 5] [1.1 2.2 3.3 4.4 5.5]}
 ```
-
 ### subcommand
 ```go
 package main
