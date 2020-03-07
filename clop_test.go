@@ -631,3 +631,39 @@ func Test_shortLongFail(t *testing.T) {
 		assert.Error(t, err)
 	}
 }
+
+// 测试没有clop,只有usage的情况
+func Test_noclop(t *testing.T) {
+	type Opt struct {
+		Debug   bool   `usage:"Activate debug mode"`
+		Verbose []bool `usage:"Verbose mode (-v, -vv, -vvv, etc.)"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d", "-v", "-v", "-v"})
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: true, Verbose: []bool{true, true, true}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d", "-vvv"})
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: true, Verbose: []bool{true, true, true}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d", "--verbose", "--verbose", "--verbose"})
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: true, Verbose: []bool{true, true, true}})
+			return struct{}{}
+		}(),
+	} {
+	}
+}

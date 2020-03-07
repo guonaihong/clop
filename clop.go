@@ -132,12 +132,16 @@ func (c *Clop) parseLong(arg string, index *int) error {
 	}
 
 	value := ""
-	//TODO确认 posix
 	switch option.pointer.Kind() {
 	//bool类型，不考虑false的情况
 	case reflect.Bool:
 		value = "true"
 	default:
+		_, isBoolSlice := option.pointer.Interface().([]bool)
+		if isBoolSlice {
+			return setBase("true", option.pointer)
+		}
+
 		// 如果是长选项
 		if *index+1 >= len(c.args) {
 			return errors.New("wrong long option")
@@ -242,16 +246,29 @@ func (c *Clop) parseShort(arg string, index *int) error {
 			}
 
 		default:
-			shortIndex++
+			_, isBoolSlice := option.pointer.Interface().([]bool)
+			if !isBoolSlice {
+				shortIndex++
+			}
+		getchar:
 			for value := arg; ; {
 
 				if len(value[shortIndex:]) > 0 {
-					if err := setBase(value[shortIndex:], option.pointer); err != nil {
+					val := value[shortIndex:]
+					if isBoolSlice {
+						val = "true"
+					}
+
+					if err := setBase(val, option.pointer); err != nil {
 						return err
 					}
 
 					if option.pointer.Kind() != reflect.Slice && !option.greedy {
 						return nil
+					}
+
+					if isBoolSlice {
+						break getchar
 					}
 				}
 
@@ -261,6 +278,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 				if *index >= len(c.args) {
 					return nil
 				}
+
 				value = c.args[*index]
 
 				if strings.HasPrefix(value, "-") {
@@ -472,7 +490,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, v ref
 			c.envAndArgs = append(c.envAndArgs, option)
 			c.checkEnv[option.envName] = struct{}{}
 		case strings.HasPrefix(opt, "args="):
-			// args是和长短选项互斥的功能
+			// args是和长,短选项互斥的功能
 			if flags&isShort > 0 || flags&isLong > 0 {
 				continue
 			}
@@ -546,12 +564,10 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 		}
 
 		// clop 可以省略
-		if len(clop) == 0 {
-			clop = strings.ToLower(sf.Name)
-			if len(clop) == 1 {
-				clop = "-" + clop
-			} else {
-				clop = "--" + clop
+		if len(usage) > 0 {
+			if len(clop) == 0 {
+				clop = strings.ToLower(sf.Name)
+				clop = "-" + strings.ToLower(string(clop[0])) + ";--" + clop
 			}
 		}
 
