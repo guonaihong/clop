@@ -566,8 +566,11 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 		// clop 可以省略
 		if len(usage) > 0 {
 			if len(clop) == 0 {
-				clop = strings.ToLower(sf.Name)
-				clop = "-" + strings.ToLower(string(clop[0])) + ";--" + clop
+				lowerClop := strings.ToLower(sf.Name)
+				clop = "-" + string(lowerClop[0])
+				if len(lowerClop) > 1 {
+					clop = clop + ";--" + lowerClop
+				}
 			}
 		}
 
