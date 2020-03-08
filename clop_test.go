@@ -679,38 +679,46 @@ func Test_EqualSign(t *testing.T) {
 	}
 
 	for range []struct{}{
-		func() struct{} {
-			o := Opt{}
-			p := New([]string{"-level=info"}).SetExit(false)
-			err := p.Bind(&o)
-			assert.NoError(t, err)
-			assert.Equal(t, o, Opt{Debug: true, Level: "info"})
-			return struct{}{}
-		}(),
-		func() struct{} {
-			o := Opt{}
-			p := New([]string{"-d=false", "--level=info"}).SetExit(false)
-			err := p.Bind(&o)
-			assert.NoError(t, err)
-			assert.Equal(t, o, Opt{Debug: false, Level: "info"})
-			return struct{}{}
-		}(),
-		func() struct{} {
-			o := Opt{}
-			p := New([]string{"-d=false", "--level=info", "--files=a.txt", "--files=b.txt", "--files=c.txt"}).SetExit(false)
-			err := p.Bind(&o)
-			assert.NoError(t, err)
-			assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt", "c.txt"}})
-			return struct{}{}
-		}(),
-		func() struct{} {
-			o := Opt{}
-			p := New([]string{"-d=false", "--verbose=true", "--files=false", "--files=true"}).SetExit(false)
-			err := p.Bind(&o)
-			assert.NoError(t, err)
-			assert.Equal(t, o, Opt{Debug: false, Verbose: []bool{true, false, true}})
-			return struct{}{}
-		}(),
+			func() struct{} {
+				o := Opt{}
+				p := New([]string{"-d=false", "-f=a.txt", "-f=b.txt", "-l=info", "-v=false", "-v=true"}).SetExit(false)
+				err := p.Bind(&o)
+				assert.NoError(t, err)
+				assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt"}, Verbose: []bool{false, true}})
+				return struct{}{}
+			}(),
+				func() struct{} {
+					o := Opt{}
+					p := New([]string{"-level=info"}).SetExit(false)
+					err := p.Bind(&o)
+					assert.NoError(t, err)
+					assert.Equal(t, o, Opt{Debug: true, Level: "info"})
+					return struct{}{}
+				}(),
+				func() struct{} {
+					o := Opt{}
+					p := New([]string{"-d=false", "--level=info"}).SetExit(false)
+					err := p.Bind(&o)
+					assert.NoError(t, err)
+					assert.Equal(t, o, Opt{Debug: false, Level: "info"})
+					return struct{}{}
+				}(),
+				func() struct{} {
+					o := Opt{}
+					p := New([]string{"-d=false", "--level=info", "--files=a.txt", "--files=b.txt", "--files=c.txt"}).SetExit(false)
+					err := p.Bind(&o)
+					assert.NoError(t, err)
+					assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt", "c.txt"}})
+					return struct{}{}
+				}(),
+				func() struct{} {
+					o := Opt{}
+					p := New([]string{"-d=false", "--verbose=true", "--files=false", "--files=true"}).SetExit(false)
+					err := p.Bind(&o)
+					assert.NoError(t, err)
+					assert.Equal(t, o, Opt{Debug: false, Verbose: []bool{true, false, true}})
+					return struct{}{}
+				}(),
 	} {
 	}
 }
