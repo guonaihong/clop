@@ -224,6 +224,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		option     *Option
 		shortIndex int
 	)
+
 	var a rune
 	find := false
 	for shortIndex, a = range arg {
@@ -232,63 +233,58 @@ func (c *Clop) parseShort(arg string, index *int) error {
 			return errors.New("Illegal character set")
 		}
 
-		value := string(byte(a))
-		option, _ = c.shortAndLong[value]
+		optionName := string(byte(a))
+		option, _ = c.shortAndLong[optionName]
 		if option == nil {
-			return fmt.Errorf("error: Found argument '-%s' which wasn't expected, or isn't valid in this context", value)
+			return fmt.Errorf("error: Found argument '-%s' which wasn't expected, or isn't valid in this context", optionName)
 		}
 
 		find = true
-		switch option.pointer.Kind() {
-		case reflect.Bool:
-			if err := setBase("true", option.pointer); err != nil {
-				return err
-			}
+		//value := "" //TODO
+		_, isBoolSlice := option.pointer.Interface().([]bool)
+		_, isBool := option.pointer.Interface().(bool)
+		if !(isBoolSlice || isBool) {
+			shortIndex++
+		}
 
-		default:
-			_, isBoolSlice := option.pointer.Interface().([]bool)
-			if !isBoolSlice {
-				shortIndex++
-			}
-		getchar:
-			for value := arg; ; {
+	getchar:
+		for value := arg; ; {
 
-				if len(value[shortIndex:]) > 0 {
-					val := value[shortIndex:]
-					if isBoolSlice {
-						val = "true"
-					}
-
-					if err := setBase(val, option.pointer); err != nil {
-						return err
-					}
-
-					if option.pointer.Kind() != reflect.Slice && !option.greedy {
-						return nil
-					}
-
-					if isBoolSlice {
-						break getchar
-					}
+			if len(value[shortIndex:]) > 0 {
+				val := value[shortIndex:]
+				if isBoolSlice || isBool {
+					val = "true"
 				}
 
-				shortIndex = 0
+				if err := setBase(val, option.pointer); err != nil {
+					return err
+				}
 
-				(*index)++
-				if *index >= len(c.args) {
+				if isBoolSlice || isBool { //比如-vvv这种情况
+					break getchar
+				}
+
+				if option.pointer.Kind() != reflect.Slice && !option.greedy {
 					return nil
 				}
+			}
 
-				value = c.args[*index]
+			shortIndex = 0
 
-				if strings.HasPrefix(value, "-") {
-					(*index)--
-					return nil
-				}
+			(*index)++
+			if *index >= len(c.args) {
+				return nil
+			}
 
+			value = c.args[*index]
+
+			if strings.HasPrefix(value, "-") {
+				(*index)--
+				return nil
 			}
 
 		}
+
 	}
 
 	if find {

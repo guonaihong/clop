@@ -667,3 +667,51 @@ func Test_noclop(t *testing.T) {
 	} {
 	}
 }
+
+// 测试选项值中带有=号
+/*
+func Test_EqualSign(t *testing.T) {
+	type Opt struct {
+		Debug   bool     `clop:"-d; --debug", usage:"Activate debug mode" defaut:"true"`
+		Level   string   `clop:"-l; --level" usage:"log level"`
+		Files   []string `clop:"-f; --files" usage:"file"`
+		Verbose []bool   `usage:"Verbose mode (-v, -vv, -vvv, etc.)"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-level=info"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: true, Level: "info"})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--level=info"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false, Level: "info"})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--level=info", "--files=a.txt", "--files=b.txt", "--files=c.txt"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt", "c.txt"}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--verbose=true", "--files=false", "--files=true"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false, Verbose: []bool{true, false, true}})
+			return struct{}{}
+		}(),
+	} {
+	}
+}
+*/
