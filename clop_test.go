@@ -43,7 +43,7 @@ func Test_API_bool(t *testing.T) {
 		{
 			func() cat {
 				c := cat{}
-				cp := New([]string{"-vTsnEb"})
+				cp := New([]string{"-vTsnEb"}).SetExit(false)
 				err := cp.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -53,7 +53,7 @@ func Test_API_bool(t *testing.T) {
 		{
 			func() cat {
 				c := cat{}
-				cp := New([]string{"-v"})
+				cp := New([]string{"-v"}).SetExit(false)
 				err := cp.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -63,7 +63,7 @@ func Test_API_bool(t *testing.T) {
 		{
 			func() cat {
 				c := cat{}
-				cp := New([]string{"--show-nonprinting", "--show-tabs", "--squeeze-blank", "--number", "--show-ends", "--number-nonblank"})
+				cp := New([]string{"--show-nonprinting", "--show-tabs", "--squeeze-blank", "--number", "--show-ends", "--number-nonblank"}).SetExit(false)
 				err := cp.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -74,7 +74,7 @@ func Test_API_bool(t *testing.T) {
 		{
 			func() cat {
 				c := cat{}
-				cp := New([]string{"-v", "--show-tabs", "-s", "--number", "-E", "--number-nonblank"})
+				cp := New([]string{"-v", "--show-tabs", "-s", "--number", "-E", "--number-nonblank"}).SetExit(false)
 				err := cp.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -85,7 +85,7 @@ func Test_API_bool(t *testing.T) {
 		{
 			func() cat {
 				c := cat{}
-				cp := New([]string{"-n", "r.go", "-T", "pool.c"})
+				cp := New([]string{"-n", "r.go", "-T", "pool.c"}).SetExit(false)
 				err := cp.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -100,7 +100,7 @@ func Test_API_bool(t *testing.T) {
 // 测试slice
 func Test_API_slice(t *testing.T) {
 	type curl struct {
-		Header []string `clop:"-H; --header; " 
+		Header []string `clop:"-H; --header; "
 				usage:"Pass custom header LINE to server (H)"`
 	}
 
@@ -116,7 +116,7 @@ func Test_API_slice(t *testing.T) {
 		{
 			func() curl {
 				c := curl{}
-				p := New([]string{"--header", "h1:v1", "--header", "h2:v2", "--header", "h3:v3"})
+				p := New([]string{"--header", "h1:v1", "--header", "h2:v2", "--header", "h3:v3"}).SetExit(false)
 				err := p.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -126,7 +126,7 @@ func Test_API_slice(t *testing.T) {
 		{
 			func() curl {
 				c := curl{}
-				p := New([]string{"-H", "h1:v1", "-H", "h2:v2", "-H", "h3:v3"})
+				p := New([]string{"-H", "h1:v1", "-H", "h2:v2", "-H", "h3:v3"}).SetExit(false)
 				err := p.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -136,7 +136,7 @@ func Test_API_slice(t *testing.T) {
 		{
 			func() curl2 {
 				c := curl2{}
-				p := New([]string{"--header", "h1:v1", "h2:v2", "h3:v3", "--url", "www.baidu.com"})
+				p := New([]string{"--header", "h1:v1", "h2:v2", "h3:v3", "--url", "www.baidu.com"}).SetExit(false)
 				err := p.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -146,7 +146,7 @@ func Test_API_slice(t *testing.T) {
 		{
 			func() curl2 {
 				c := curl2{}
-				p := New([]string{"-H", "h1:v1", "h2:v2", "h3:v3", "--url", "www.baidu.com", "-cval1", "val2", "val3"})
+				p := New([]string{"-H", "h1:v1", "h2:v2", "h3:v3", "--url", "www.baidu.com", "-cval1", "val2", "val3"}).SetExit(false)
 				err := p.Bind(&c)
 				assert.NoError(t, err)
 				return c
@@ -171,7 +171,7 @@ func Test_API_int(t *testing.T) {
 		{
 			func() grep {
 				g := grep{}
-				cp := New([]string{"-B3", "--after-context", "1", "keyword", "join.txt", "-m", "4"})
+				cp := New([]string{"-B3", "--after-context", "1", "keyword", "join.txt", "-m", "4"}).SetExit(false)
 				err := cp.Bind(&g)
 				assert.NoError(t, err)
 				return g
@@ -203,7 +203,7 @@ func Test_API_env(t *testing.T) {
 
 				assert.NoError(t, err)
 
-				p := New([]string{"-u", "qq.com", "-u", "baidu.com"})
+				p := New([]string{"-u", "qq.com", "-u", "baidu.com"}).SetExit(false)
 				err = p.Bind(&e)
 				assert.NoError(t, err)
 				return e
@@ -218,7 +218,7 @@ func Test_API_env(t *testing.T) {
 				assert.NoError(t, err)
 
 				e := env{}
-				p := New([]string{})
+				p := New([]string{}).SetExit(false)
 				err = p.Bind(&e)
 				assert.NoError(t, err)
 				return e
@@ -233,7 +233,7 @@ func Test_API_env(t *testing.T) {
 				assert.NoError(t, err)
 
 				e := env{}
-				p := New([]string{})
+				p := New([]string{}).SetExit(false)
 				err = p.Bind(&e)
 				assert.NoError(t, err)
 				return e
@@ -267,7 +267,7 @@ func Test_API_args(t *testing.T) {
 
 				assert.NoError(t, err)
 
-				p := New([]string{"-d", "--level", "info", "output.file", "a.txt", "b.txt"})
+				p := New([]string{"-d", "--level", "info", "output.file", "a.txt", "b.txt"}).SetExit(false)
 				err = p.Bind(&a)
 				assert.NoError(t, err)
 				return a
@@ -346,7 +346,7 @@ func Test_API_subcommand(t *testing.T) {
 			// 测试add子命令
 			func() git {
 				g := git{}
-				p := New([]string{"add", "-Af", "a.txt"})
+				p := New([]string{"add", "-Af", "a.txt"}).SetExit(false)
 				err := p.Bind(&g)
 				assert.NoError(t, err)
 				assert.True(t, p.IsSetSubcommand("add"))
@@ -357,7 +357,7 @@ func Test_API_subcommand(t *testing.T) {
 			// 测试mv子命令
 			func() git {
 				g := git{}
-				p := New([]string{"mv", "-f"})
+				p := New([]string{"mv", "-f"}).SetExit(false)
 				err := p.Bind(&g)
 				assert.NoError(t, err)
 				assert.False(t, p.IsSetSubcommand("add"))
@@ -404,7 +404,7 @@ func Test_API_head(t *testing.T) {
 	}
 
 	h := head{}
-	cp := New([]string{})
+	cp := New([]string{}).SetExit(false)
 	err := cp.register(&h)
 	assert.NoError(t, err)
 }
@@ -642,7 +642,7 @@ func Test_noclop(t *testing.T) {
 	for range []struct{}{
 		func() struct{} {
 			o := Opt{}
-			p := New([]string{"-d", "-v", "-v", "-v"})
+			p := New([]string{"-d", "-v", "-v", "-v"}).SetExit(false)
 			err := p.Bind(&o)
 			assert.NoError(t, err)
 			assert.Equal(t, o, Opt{Debug: true, Verbose: []bool{true, true, true}})
@@ -650,7 +650,7 @@ func Test_noclop(t *testing.T) {
 		}(),
 		func() struct{} {
 			o := Opt{}
-			p := New([]string{"-d", "-vvv"})
+			p := New([]string{"-d", "-vvv"}).SetExit(false)
 			err := p.Bind(&o)
 			assert.NoError(t, err)
 			assert.Equal(t, o, Opt{Debug: true, Verbose: []bool{true, true, true}})
@@ -658,7 +658,7 @@ func Test_noclop(t *testing.T) {
 		}(),
 		func() struct{} {
 			o := Opt{}
-			p := New([]string{"-d", "--verbose", "--verbose", "--verbose"})
+			p := New([]string{"-d", "--verbose", "--verbose", "--verbose"}).SetExit(false)
 			err := p.Bind(&o)
 			assert.NoError(t, err)
 			assert.Equal(t, o, Opt{Debug: true, Verbose: []bool{true, true, true}})
@@ -669,7 +669,6 @@ func Test_noclop(t *testing.T) {
 }
 
 // 测试选项值中带有=号
-/*
 func Test_EqualSign(t *testing.T) {
 	type Opt struct {
 		Debug   bool     `clop:"-d; --debug", usage:"Activate debug mode" defaut:"true"`
@@ -679,47 +678,54 @@ func Test_EqualSign(t *testing.T) {
 	}
 
 	for range []struct{}{
-			func() struct{} {
-				o := Opt{}
-				p := New([]string{"-d=false", "-f=a.txt", "-f=b.txt", "-l=info", "-v=false", "-v=true"}).SetExit(false)
-				err := p.Bind(&o)
-				assert.NoError(t, err)
-				assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt"}, Verbose: []bool{false, true}})
-				return struct{}{}
-			}(),
-				func() struct{} {
-					o := Opt{}
-					p := New([]string{"-level=info"}).SetExit(false)
-					err := p.Bind(&o)
-					assert.NoError(t, err)
-					assert.Equal(t, o, Opt{Debug: true, Level: "info"})
-					return struct{}{}
-				}(),
-				func() struct{} {
-					o := Opt{}
-					p := New([]string{"-d=false", "--level=info"}).SetExit(false)
-					err := p.Bind(&o)
-					assert.NoError(t, err)
-					assert.Equal(t, o, Opt{Debug: false, Level: "info"})
-					return struct{}{}
-				}(),
-				func() struct{} {
-					o := Opt{}
-					p := New([]string{"-d=false", "--level=info", "--files=a.txt", "--files=b.txt", "--files=c.txt"}).SetExit(false)
-					err := p.Bind(&o)
-					assert.NoError(t, err)
-					assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt", "c.txt"}})
-					return struct{}{}
-				}(),
-				func() struct{} {
-					o := Opt{}
-					p := New([]string{"-d=false", "--verbose=true", "--files=false", "--files=true"}).SetExit(false)
-					err := p.Bind(&o)
-					assert.NoError(t, err)
-					assert.Equal(t, o, Opt{Debug: false, Verbose: []bool{true, false, true}})
-					return struct{}{}
-				}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "-f=a.txt", "-f=b.txt", "-l=info", "-v=false", "-v=true"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt"}, Verbose: []bool{false, true}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"--debug=false"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"--level=info"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Level: "info"})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--level=info"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false, Level: "info"})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--level=info", "--files=a.txt", "--files=b.txt", "--files=c.txt"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false, Level: "info", Files: []string{"a.txt", "b.txt", "c.txt"}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--verbose=true", "--files=false", "--files=true"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Opt{Debug: false, Files: []string{"false", "true"}, Verbose: []bool{true}})
+			return struct{}{}
+		}(),
 	} {
 	}
 }
-*/

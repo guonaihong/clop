@@ -122,24 +122,55 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long
 	return nil
 }
 
+func unknownOptionErrorShort(optionName string) error {
+	return fmt.Errorf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context`,
+		optionName)
+}
+func unknownOptionError(optionName string) error {
+	return fmt.Errorf(`error: Found argument '--%s' which wasn't expected, or isn't valid in this context`,
+		optionName)
+}
+
 // 解析长选项
 func (c *Clop) parseLong(arg string, index *int) error {
 	var option *Option
+	value := ""
 	option, _ = c.shortAndLong[arg]
-	if option == nil || len(arg) == 1 {
-		return fmt.Errorf(`error: Found argument '--%s' which wasn't expected, or isn't valid in this context`,
-			arg)
+	if option == nil {
+		pos := strings.Index(arg, "=")
+		if pos == -1 {
+			return unknownOptionError(arg)
+		}
+
+		option, _ = c.shortAndLong[arg[:pos]]
+		if option == nil {
+			return unknownOptionError(arg)
+		}
+		value = arg[pos+1:]
 	}
 
-	value := ""
+	if len(arg) == 1 {
+		return unknownOptionError(arg)
+	}
+
 	switch option.pointer.Kind() {
 	//bool类型，不考虑false的情况
 	case reflect.Bool:
-		value = "true"
+		if value == "" {
+			value = "true"
+		}
 	default:
 		_, isBoolSlice := option.pointer.Interface().([]bool)
 		if isBoolSlice {
-			return setBase("true", option.pointer)
+			if value == "" {
+				value = "true"
+			}
+
+			return setBase(value, option.pointer)
+		}
+
+		if len(value) > 0 {
+			return setBase(value, option.pointer)
 		}
 
 		// 如果是长选项
@@ -227,6 +258,10 @@ func (c *Clop) parseShort(arg string, index *int) error {
 
 	var a rune
 	find := false
+	// -d -d是bool类型
+	// -vvv 是[]bool类型
+	// -d=false -d 是bool false是value
+	// -ffile -f是string类型，file是value
 	for shortIndex, a = range arg {
 		//只支持ascii
 		if a >= utf8.RuneSelf {
@@ -236,28 +271,49 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		optionName := string(byte(a))
 		option, _ = c.shortAndLong[optionName]
 		if option == nil {
-			return fmt.Errorf("error: Found argument '-%s' which wasn't expected, or isn't valid in this context", optionName)
+			return unknownOptionErrorShort(optionName)
 		}
 
 		find = true
-		//value := "" //TODO
+		findEqual := false
+		value := arg
 		_, isBoolSlice := option.pointer.Interface().([]bool)
 		_, isBool := option.pointer.Interface().(bool)
 		if !(isBoolSlice || isBool) {
 			shortIndex++
 		}
 
+		if len(value[shortIndex:]) > 0 && len(value[shortIndex+1:]) > 0 {
+			if value[shortIndex:][0] == '=' {
+				findEqual = true
+				shortIndex++
+			}
+
+			if value[shortIndex+1:][0] == '=' {
+				findEqual = true
+				shortIndex += 2
+			}
+		}
+
 	getchar:
 		for value := arg; ; {
 
-			if len(value[shortIndex:]) > 0 {
+			if len(value[shortIndex:]) > 0 { // 如果没有值，要取args下个参数
 				val := value[shortIndex:]
 				if isBoolSlice || isBool {
 					val = "true"
 				}
 
+				if findEqual {
+					val = string(value[shortIndex:])
+				}
+
 				if err := setBase(val, option.pointer); err != nil {
 					return err
+				}
+
+				if findEqual {
+					return nil
 				}
 
 				if isBoolSlice || isBool { //比如-vvv这种情况
@@ -291,8 +347,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		return nil
 	}
 
-	return fmt.Errorf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context`,
-		arg)
+	return unknownOptionErrorShort(arg)
 }
 
 func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
@@ -428,6 +483,7 @@ func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, hav
 
 			name := opt[len("subcommand="):]
 			newClop := New(nil)
+			//newClop.exit = c.exit //继承exit属性
 			newClop.SetProcName(name)
 			newClop.root = c.getRoot()
 			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
