@@ -20,6 +20,7 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 	- [code](#quick-start-code)
 	- [help message](#help-message)
 - [1. How to use required tags](#required-flag)
+- [2.Support environment variables](#support-environment-variables)
 - [2.Set default value](#set-default-value)
 - [3. How to implement git style commands](#subcommand)
 
@@ -133,6 +134,32 @@ func main() {
 //         ./use_def
 // output:
 //         {1 3.64 3.32 [one two] [1 2 3 4 5] [1.1 2.2 3.3 4.4 5.5]}
+```
+### Support environment variables
+```go
+// file name use_env.go
+package main
+
+import (
+	"fmt"
+	"github.com/guonaihong/clop"
+)
+
+type env struct {
+	OmpNumThread string `clop:"env=omp_num_thread" usage:"omp num thread"`
+	Path         string `clop:"env=XPATH" usage:"xpath"`
+	Max          int    `clop:"env=MAX" usage:"max thread"`
+}
+
+func main() {
+	e := env{}
+	clop.Bind(&e)
+	fmt.Printf("%#v\n", e)
+}
+// run
+// env XPATH=`pwd` OMP_NUM_THREAD=3 MAX=4 ./use_env 
+// output
+// main.env{OmpNumThread:"", Path:"/home/guo", Max:4}
 ```
 ### subcommand
 ```go
