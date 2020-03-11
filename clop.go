@@ -37,9 +37,11 @@ type Clop struct {
 	subcommand map[string]*Subcommand //子命令
 
 	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用
-	procName        string
+	procName        string              //进程名
 
-	w io.Writer
+	currSubcommandFieldName string //当前使用的子命令结构体名, 只有root才设置该字段
+	fieldName               string //记录当前子结构体字段名, root为空
+	w                       io.Writer
 }
 
 // 使用递归定义，可以很轻检地解决subcommand嵌套的情况
@@ -85,6 +87,7 @@ func checkOptionName(name string) (byte, bool) {
 	return 0, true
 }
 
+// 设置出错行为，默认出错会退出进程(true), 为false则不会
 func (c *Clop) SetExit(exit bool) *Clop {
 	c.exit = exit
 	return c
@@ -95,6 +98,7 @@ func (c *Clop) SetOutput(w io.Writer) *Clop {
 	return c
 }
 
+// 设置进程名
 func (c *Clop) SetProcName(procName string) *Clop {
 	c.procName = procName
 	return c
@@ -472,7 +476,7 @@ func (c *Clop) getRoot() (root *Clop) {
 	return root
 }
 
-func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, haveSubcommand bool) {
+func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (newClop *Clop, haveSubcommand bool) {
 	options := strings.Split(clop, ";")
 	for _, opt := range options {
 		switch {
@@ -487,6 +491,8 @@ func (c *Clop) parseSubcommandTag(clop string, usage string) (newClop *Clop, hav
 			newClop.SetProcName(name)
 			newClop.root = c.getRoot()
 			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
+			newClop.fieldName = fieldName
+
 			return newClop, true
 		}
 	}
@@ -584,7 +590,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 	// 如果是subcommand
 	if v.Kind() == reflect.Struct {
 		if len(clop) != 0 {
-			if newClop, b := c.parseSubcommandTag(clop, usage); b {
+			if newClop, b := c.parseSubcommandTag(clop, usage, sf.Name); b {
 				c = newClop
 			}
 		}
@@ -680,6 +686,10 @@ func (c *Clop) parseOneOption(index *int) error {
 			}
 
 			c.getRoot().isSetSubcommand[arg] = struct{}{}
+			if c.root == nil {
+				c.currSubcommandFieldName = newClop.fieldName
+			}
+
 			newClop.args = c.args[*index+1:]
 			c.args = c.args[0:0]
 			return newClop.bindStruct()
@@ -744,6 +754,13 @@ func (c *Clop) Bind(x interface{}) (err error) {
 
 	if err = c.bindStruct(); err != nil {
 		return err
+	}
+
+	if len(c.currSubcommandFieldName) > 0 {
+		v := reflect.ValueOf(x)
+		v = v.Elem() // x只能是指针，已经在c.register判断过了
+		v = v.FieldByName(c.currSubcommandFieldName)
+		x = v.Interface()
 	}
 
 	err = valid.ValidateStruct(x)
