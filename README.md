@@ -21,8 +21,8 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 	- [help message](#help-message)
 - [1. How to use required tags](#required-flag)
 - [2.Support environment variables](#support-environment-variables)
-- [2.Set default value](#set-default-value)
-- [3. How to implement git style commands](#subcommand)
+- [3.Set default value](#set-default-value)
+- [4. How to implement git style commands](#subcommand)
 
 ## Installation
 ```
