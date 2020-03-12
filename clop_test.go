@@ -429,11 +429,27 @@ func Test_API_fail(t *testing.T) {
 	}
 }
 
-// 设置数据效验
+// 设置数据校验
 func Test_API_valid(t *testing.T) {
 	type cat struct {
 		NumberNonblank bool `clop:"-b; --number-nonblank" valid:"required"
 		                     usage:"number nonempty output lines, overrides"`
+	}
+
+	// 数据校验 + 子命令测试
+	type add struct {
+		All      bool     `clop:"-A; --all" usage:"add changes from all tracked and untracked files" valid:"required"`
+		Force    bool     `clop:"-f; --force" usage:"allow adding otherwise ignored files" valid:"required"`
+		Pathspec []string `clop:"args=pathspec"`
+	}
+
+	type mv struct {
+		Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files" valid:"required"`
+	}
+
+	type git struct {
+		Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
+		Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
 	}
 
 	for range []struct{}{
@@ -443,6 +459,22 @@ func Test_API_valid(t *testing.T) {
 			cp := New([]string{}).SetExit(false)
 			err := cp.Bind(&c)
 			assert.Error(t, err)
+			return struct{}{}
+		}(),
+		func() struct{} {
+			g := git{}
+			cp := New([]string{"mv", "-f"}).SetExit(false)
+			err := cp.Bind(&g)
+			assert.NoError(t, err)
+			assert.Equal(t, g, git{Mv: mv{Force: true}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			g := git{}
+			cp := New([]string{"add", "-A", "-f"}).SetExit(false)
+			err := cp.Bind(&g)
+			assert.NoError(t, err)
+			assert.Equal(t, g, git{Add: add{All: true, Force: true}})
 			return struct{}{}
 		}(),
 	} {
