@@ -1,4 +1,7 @@
 # clop
+[![Github Actions](https://github.com/guonaihong/clop/workflows/CI/badge.svg)](https://github.com/guonaihong/clop/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/guonaihong/clop)](https://goreportcard.com/report/github.com/guonaihong/clop)
+
 clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从零实现)
 
 ## 状态
