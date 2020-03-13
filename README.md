@@ -17,8 +17,6 @@ clop 是一款小巧的命令行解析器，麻雀虽小，五脏俱全。(从�
 ## 内容
 - [Installation](#Installation)
 - [Quick start](#quick-start)
-	- [code](#quick-start-code)
-	- [help message](#help-message)
 - [1. How to use required tags](#required-flag)
 - [2.Support environment variables](#support-environment-variables)
 - [3.Set default value](#set-default-value)
@@ -30,7 +28,6 @@ go get github.com/guonaihong/clop
 ```
 
 ## Quick start
-### quick start code
 ```go
 package main
 
@@ -157,9 +154,9 @@ func main() {
 	fmt.Printf("%#v\n", e)
 }
 // run
-// env XPATH=`pwd` OMP_NUM_THREAD=3 MAX=4 ./use_env 
+// env XPATH=`pwd` omp_num_thread=3 MAX=4 ./use_env 
 // output
-// main.env{OmpNumThread:"", Path:"/home/guo", Max:4}
+// main.env{OmpNumThread:"3", Path:"/home/guo", Max:4}
 ```
 ### subcommand
 ```go
