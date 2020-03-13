@@ -536,7 +536,19 @@ func Test_DefautlValue(t *testing.T) {
 		SliceFloat64 []float64 `clop:"--slice-float64" default:"[1.1,2.2,3.3,4.4,5.5]"`
 	}
 
+	type tool struct {
+		Rate string `clop:"-r; --rate" usage:"rate" default:"8000"`
+	}
+
 	for range []struct{}{
+		func() struct{} {
+			tol := tool{}
+			p := New([]string{}).SetExit(false)
+			err := p.Bind(&tol)
+			assert.NoError(t, err)
+			return struct{}{}
+		}(),
+
 		func() struct{} {
 			got := defaultExample{}
 			need := defaultExample{
