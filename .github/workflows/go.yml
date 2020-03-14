@@ -30,3 +30,14 @@ jobs:
 
     - name: Build
       run: go build -v .
+
+    - name: Test
+      run: |
+          go test -v ./...
+          make test
+
+    - name: Upload Coverage report
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
+        file: ./coverage.out
