@@ -712,6 +712,36 @@ func Test_noclop(t *testing.T) {
 	}
 }
 
+func Test_Curl(t *testing.T) {
+	type Curl struct {
+		Method string   `clop:"-X; --request" usage:"Specify request command to use"`
+		Header []string `clop:"-H; --header" usage:"Pass custom header(s) to server"`
+		Data   string   `clop:"-d; --data"   usage:"HTTP POST data"`
+		Form   []string `clop:"-F; --form"  usage:"Specify multipart MIME data"`
+		URL    string   `clop:"args=url" usage:"url"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			o := Curl{}
+			p := New([]string{"-X", "POST", "-H", "h1:v1", "-H", "h2:v2", "http://127.0.0.1:42397"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Curl{Method: "POST", Header: []string{"h1:v1", "h2:v2"}, URL: "http://127.0.0.1:42397"})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Curl{}
+			p := New([]string{"-X", "POST", "--header", "h1:v1", "--header", "h2:v2", "http://127.0.0.1:42397"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, Curl{Method: "POST", Header: []string{"h1:v1", "h2:v2"}, URL: "http://127.0.0.1:42397"})
+			return struct{}{}
+		}(),
+	} {
+	}
+}
+
 // 测试选项值中带有=号
 func Test_EqualSign(t *testing.T) {
 	type Opt struct {

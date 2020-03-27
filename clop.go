@@ -200,7 +200,12 @@ func (c *Clop) parseLong(arg string, index *int) error {
 				return err
 			}
 
-			if option.pointer.Kind() != reflect.Slice && !option.greedy {
+			/*
+				if option.pointer.Kind() != reflect.Slice && !option.greedy {
+					return nil
+				}
+			*/
+			if !option.greedy {
 				return nil
 			}
 		}
@@ -262,6 +267,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 
 	var a rune
 	find := false
+	// 可以解析的参数类型举例
 	// -d -d是bool类型
 	// -vvv 是[]bool类型
 	// -d=false -d 是bool false是value
@@ -275,11 +281,12 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		optionName := string(byte(a))
 		option, _ = c.shortAndLong[optionName]
 		if option == nil {
+			//没有注册过的选项直接报错
 			return unknownOptionErrorShort(optionName)
 		}
 
 		find = true
-		findEqual := false
+		findEqual := false //是否找到等于号
 		value := arg
 		_, isBoolSlice := option.pointer.Interface().([]bool)
 		_, isBool := option.pointer.Interface().(bool)
@@ -324,17 +331,23 @@ func (c *Clop) parseShort(arg string, index *int) error {
 					break getchar
 				}
 
-				if option.pointer.Kind() != reflect.Slice && !option.greedy {
+				/*
+					非贪婪模式，解析设置slice变量，会多吃掉args参数要的变量
+					if option.pointer.Kind() != reflect.Slice && !option.greedy {
+						return nil
+					}
+				*/
+				if !option.greedy {
 					return nil
 				}
 			}
 
 			shortIndex = 0
 
-			(*index)++
-			if *index >= len(c.args) {
+			if *index+1 >= len(c.args) {
 				return nil
 			}
+			(*index)++
 
 			value = c.args[*index]
 
