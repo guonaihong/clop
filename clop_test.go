@@ -803,3 +803,54 @@ func Test_EqualSign(t *testing.T) {
 	} {
 	}
 }
+
+func Test_OptionPriority(t *testing.T) {
+	type Opt struct {
+		Debug   bool     `clop:"-d; --debug", usage:"Activate debug mode" defaut:"true"`
+		Level   string   `clop:"-l; --level" usage:"log level"`
+		Files   []string `clop:"-f; --files" usage:"file"`
+		Verbose []bool   `usage:"Verbose mode (-v, -vv, -vvv, etc.)"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "-f=a.txt", "-f=b.txt", "-l=info", "-v=false", "-v=true"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+
+			assert.Less(t, p.GetIndex("debug"), p.GetIndex("files"))
+			assert.Less(t, p.GetIndex("files"), p.GetIndex("verbose"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--level=info"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("debug"), p.GetIndex("verbose"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--level=info", "--files=a.txt", "--files=b.txt", "--files=c.txt"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("debug"), p.GetIndex("level"))
+			assert.Less(t, p.GetIndex("debug"), p.GetIndex("files"))
+			assert.Less(t, p.GetIndex("level"), p.GetIndex("files"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--verbose=true", "--files=false", "--files=true"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("debug"), p.GetIndex("verbose"))
+			assert.Less(t, p.GetIndex("debug"), p.GetIndex("files"))
+			assert.Less(t, p.GetIndex("verbose"), p.GetIndex("files"))
+			return struct{}{}
+		}(),
+	} {
+	}
+}

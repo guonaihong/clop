@@ -54,10 +54,11 @@ type Option struct {
 	pointer      reflect.Value //存放需要修改的值的reflect.Value类型变量
 	usage        string        //帮助信息
 	showDefValue string        //显示默认值
-	index        int           //表示参数优先级 TODO把值用起来
-	envName      string        //环境变量
-	argsName     string        //args变量
-	greedy       bool          //贪婪模式 -H a b c 等于-H a -H b -H c
+	//表示参数优先级, 高4字节存放args顺序, 低4字节存放命令组合的顺序(ls -ltr)，这里的l的高4字节的值就是0
+	index    uint64
+	envName  string //环境变量
+	argsName string //args变量
+	greedy   bool   //贪婪模式 -H a b c 等于-H a -H b -H c
 
 	showShort []string //help显示的短选项
 	showLong  []string //help显示的长选项
@@ -109,6 +110,15 @@ func (c *Clop) IsSetSubcommand(subcommand string) bool {
 	return ok
 }
 
+func (c *Clop) GetIndex(optName string) uint64 {
+	o, ok := c.shortAndLong[optName]
+	if !ok {
+		return 0
+	}
+
+	return o.index
+}
+
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long bool) error {
 	if c, ok := checkOptionName(name); !ok {
 		return fmt.Errorf("%w:%s:unsupported characters found(%c)", ErrOptionName, name, c)
@@ -124,6 +134,12 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long
 
 	m[name] = option
 	return nil
+}
+
+func setValueAndIndex(val string, option *Option, index int, lowIndex int) error {
+	option.index = uint64(index) << 31
+	option.index |= uint64(lowIndex)
+	return setBase(val, option.pointer)
 }
 
 func unknownOptionErrorShort(optionName string) error {
@@ -170,11 +186,11 @@ func (c *Clop) parseLong(arg string, index *int) error {
 				value = "true"
 			}
 
-			return setBase(value, option.pointer)
+			return setValueAndIndex(value, option, *index, 0)
 		}
 
 		if len(value) > 0 {
-			return setBase(value, option.pointer)
+			return setValueAndIndex(value, option, *index, 0)
 		}
 
 		// 如果是长选项
@@ -196,7 +212,7 @@ func (c *Clop) parseLong(arg string, index *int) error {
 				return nil
 			}
 
-			if err := setBase(value, option.pointer); err != nil {
+			if err := setValueAndIndex(value, option, *index, 0); err != nil {
 				return err
 			}
 
@@ -210,7 +226,7 @@ func (c *Clop) parseLong(arg string, index *int) error {
 			}
 		}
 	}
-	return setBase(value, option.pointer)
+	return setValueAndIndex(value, option, *index, 0)
 }
 
 // 设置环境变量和参数
@@ -223,7 +239,7 @@ func (o *Option) setEnvAndArgs(c *Clop) (err error) {
 				}
 			}
 
-			return setBase(v, o.pointer)
+			return setValueAndIndex(v, o, 0, 0)
 		}
 	}
 
@@ -238,7 +254,7 @@ func (o *Option) setEnvAndArgs(c *Clop) (err error) {
 		switch o.pointer.Kind() {
 		case reflect.Slice:
 			for o.pointer.Kind() == reflect.Slice {
-				setBase(value, o.pointer)
+				setValueAndIndex(value, o, 0, 0)
 				c.unparsedArgs = c.unparsedArgs[1:]
 				if len(c.unparsedArgs) == 0 {
 					break
@@ -247,7 +263,7 @@ func (o *Option) setEnvAndArgs(c *Clop) (err error) {
 				value = c.unparsedArgs[0]
 			}
 		default:
-			if err := setBase(value, o.pointer); err != nil {
+			if err := setValueAndIndex(value, o, 0, 0); err != nil {
 				return err
 			}
 			if len(c.unparsedArgs) > 0 {
@@ -319,7 +335,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 					val = string(value[shortIndex:])
 				}
 
-				if err := setBase(val, option.pointer); err != nil {
+				if err := setValueAndIndex(val, option, *index, shortIndex); err != nil {
 					return err
 				}
 
@@ -719,9 +735,6 @@ func (c *Clop) parseOneOption(index *int) error {
 		numMinuses++
 	}
 
-	// 暂不支持=号的情况
-	// TODO 考虑下要不要加上
-
 	a := arg[numMinuses:]
 	return c.getOptionAndSet(a, index, numMinuses)
 }
@@ -801,6 +814,10 @@ func Bind(x interface{}) error {
 
 func IsSetSubcommand(subcommand string) bool {
 	return CommandLine.IsSetSubcommand(subcommand)
+}
+
+func GetIndex(optName string) uint64 {
+	return CommandLine.GetIndex(optName)
 }
 
 var CommandLine = New(os.Args[1:])
