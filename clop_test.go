@@ -805,6 +805,14 @@ func Test_EqualSign(t *testing.T) {
 }
 
 func Test_OptionPriority(t *testing.T) {
+	type cat struct {
+		NumberNonblank bool `clop:"-b;--number-nonblank"
+		                     usage:"number nonempty output lines, overrides"`
+
+		ShowEnds bool `clop:"-E;--show-ends"
+		               usage:"display $ at end of each line"`
+	}
+
 	type Opt struct {
 		Debug   bool     `clop:"-d; --debug", usage:"Activate debug mode" defaut:"true"`
 		Level   string   `clop:"-l; --level" usage:"log level"`
@@ -812,7 +820,73 @@ func Test_OptionPriority(t *testing.T) {
 		Verbose []bool   `usage:"Verbose mode (-v, -vv, -vvv, etc.)"`
 	}
 
+	type curl struct {
+		URL  string `clop:"--url" usage:"url"`
+		URL2 string `clop:"args=url2" usage:"url2"`
+	}
+
+	// 环境变量暂时没有优先级
+	type env struct {
+		args1 string `clop:"env=test-args1" usage:"env 1"`
+		args2 string `clop:"env=test-args2" usage:"env 1"`
+	}
+
 	for range []struct{}{
+		func() struct{} {
+			defer func() {
+				os.Unsetenv("test-args1")
+				os.Unsetenv("test-args2")
+			}()
+
+			os.Setenv("test-args1", "godoc.org")
+			os.Setenv("test-args2", "godoc.org2")
+			c := env{}
+			p := New([]string{}).SetExit(false)
+			err := p.Bind(&c)
+			assert.NoError(t, err)
+			assert.Equal(t, p.GetIndex("test-args1"), p.GetIndex("test-args2"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			c := cat{}
+			p := New([]string{"-bE"}).SetExit(false)
+			err := p.Bind(&c)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("number-nonblank"), p.GetIndex("show-ends"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			c := cat{}
+			p := New([]string{"-Eb"}).SetExit(false)
+			err := p.Bind(&c)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("show-ends"), p.GetIndex("number-nonblank"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			c := curl{}
+			p := New([]string{"--url", "url", "url2"}).SetExit(false)
+			err := p.Bind(&c)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("url"), p.GetIndex("url2"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			c := curl{}
+			p := New([]string{"url2", "--url", "url"}).SetExit(false)
+			err := p.Bind(&c)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("url2"), p.GetIndex("url"))
+			return struct{}{}
+		}(),
+		func() struct{} {
+			o := Opt{}
+			p := New([]string{"-d=false", "--level=info"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Less(t, p.GetIndex("debug"), p.GetIndex("level"))
+			return struct{}{}
+		}(),
 		func() struct{} {
 			o := Opt{}
 			p := New([]string{"-d=false", "-f=a.txt", "-f=b.txt", "-l=info", "-v=false", "-v=true"}).SetExit(false)
@@ -821,14 +895,6 @@ func Test_OptionPriority(t *testing.T) {
 
 			assert.Less(t, p.GetIndex("debug"), p.GetIndex("files"))
 			assert.Less(t, p.GetIndex("files"), p.GetIndex("verbose"))
-			return struct{}{}
-		}(),
-		func() struct{} {
-			o := Opt{}
-			p := New([]string{"-d=false", "--level=info"}).SetExit(false)
-			err := p.Bind(&o)
-			assert.NoError(t, err)
-			assert.Less(t, p.GetIndex("debug"), p.GetIndex("verbose"))
 			return struct{}{}
 		}(),
 		func() struct{} {

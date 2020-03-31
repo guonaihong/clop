@@ -19,6 +19,11 @@ var (
 	ErrOptionName       = errors.New("Illegal option name")
 )
 
+type unparsedArg struct {
+	arg   string
+	index int
+}
+
 type Clop struct {
 	//指向自己的root clop，如果设置了subcommand这个值是有意义的
 	//非root Clop指向root，root Clop值为nil
@@ -28,7 +33,7 @@ type Clop struct {
 	checkArgs    map[string]struct{} //判断args是否重复注册
 	envAndArgs   []*Option           //存放环境变量和args
 	args         []string            //原始参数
-	unparsedArgs []string            //没有解析的args参数
+	unparsedArgs []unparsedArg       //没有解析的args参数
 
 	about   string //about信息
 	version string //版本信息
@@ -111,12 +116,22 @@ func (c *Clop) IsSetSubcommand(subcommand string) bool {
 }
 
 func (c *Clop) GetIndex(optName string) uint64 {
+	// 长短选项
 	o, ok := c.shortAndLong[optName]
-	if !ok {
-		return 0
+	if ok {
+		return o.index
 	}
 
-	return o.index
+	// args参数
+	if _, ok := c.checkArgs[optName]; ok {
+		for _, o := range c.envAndArgs {
+			if o.argsName == optName {
+				return o.index
+			}
+		}
+	}
+
+	return 0
 }
 
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long bool) error {
@@ -254,7 +269,7 @@ func (o *Option) setEnvAndArgs(c *Clop) (err error) {
 		switch o.pointer.Kind() {
 		case reflect.Slice:
 			for o.pointer.Kind() == reflect.Slice {
-				setValueAndIndex(value, o, 0, 0)
+				setValueAndIndex(value.arg, o, value.index, 0)
 				c.unparsedArgs = c.unparsedArgs[1:]
 				if len(c.unparsedArgs) == 0 {
 					break
@@ -263,7 +278,7 @@ func (o *Option) setEnvAndArgs(c *Clop) (err error) {
 				value = c.unparsedArgs[0]
 			}
 		default:
-			if err := setValueAndIndex(value, o, 0, 0); err != nil {
+			if err := setValueAndIndex(value.arg, o, value.index, 0); err != nil {
 				return err
 			}
 			if len(c.unparsedArgs) > 0 {
@@ -724,7 +739,7 @@ func (c *Clop) parseOneOption(index *int) error {
 			c.args = c.args[0:0]
 			return newClop.bindStruct()
 		}
-		c.unparsedArgs = append(c.unparsedArgs, arg)
+		c.unparsedArgs = append(c.unparsedArgs, unparsedArg{arg: arg, index: *index})
 		return nil
 	}
 
