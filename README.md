@@ -15,6 +15,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 * 贴心的重复命令报错
 * 严格的短选项，长选项报错。避免二义性选项诞生
 * 效验模式支持，不需要写一堆的```if x!= "" ``` or ```if y!=0```浪费青春的代码
+* 可以获取命令优先级别，方便设置命令别名
 
 ## 内容
 - [Installation](#Installation)
@@ -24,6 +25,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 	- [2.Support environment variables](#support-environment-variables)
 	- [3.Set default value](#set-default-value)
 	- [4. How to implement git style commands](#subcommand)
+	- [5. Get command priority](#get-command-priority)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
 ## Installation
@@ -169,6 +171,39 @@ func main() {
 // git:main.git{Add:main.add{All:false, Force:true, Pathspec:[]string(nil)}, Mv:main.mv{Force:false}}
 // git:set mv(false) or set add(true)
 
+```
+## Get command priority
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/guonaihong/clop"
+)
+
+type cat struct {
+	NumberNonblank bool `clop:"-b;--number-nonblank"
+                             usage:"number nonempty output lines, overrides"`
+
+	ShowEnds bool `clop:"-E;--show-ends"
+                       usage:"display $ at end of each line"`
+}
+
+func main() {
+
+	c := cat{}
+	clop.Bind(&c)
+
+	if clop.GetIndex("number-nonblank") < clop.GetIndex("show-ends") {
+		fmt.Printf("cat -b -E\n")
+	} else {
+		fmt.Printf("cat -E -b \n")
+	}
+}
+// cat -be 
+// 输出 cat -b -E
+// cat -Eb
+// 输出 cat -E -b
 ```
 ## Implementing linux command options
 ### cat
