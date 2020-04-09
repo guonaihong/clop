@@ -10,7 +10,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 * 支持参数搜集 ```cat a.txt b.txt```，可以把```a.txt, b.txt```散装成员归归类，收集到你指定的结构体成员里
 * 支持短选项```proc -d``` 或者长选项```proc --debug```不在话下
 * posix风格命令行支持，支持命令组合```ls -ltr```是```ls -l -t -r```简写形式，方便实现普通posix 标准命令
-* 子命令支持，方便实现git风格子命令```git add ```，简洁的子命令注册方式，只要会写结构提就行，3,4,5到无穷尽子命令也支持，只要你喜欢，用上clop就可以实现
+* 子命令支持，方便实现git风格子命令```git add ```，简洁的子命令注册方式，只要会写结构体就行，3,4,5到无穷尽子命令也支持，只要你喜欢，用上clop就可以实现
 * 默认值支持```default:"1"```，支持多种数据类型，让你省去类型转换的烦恼
 * 贴心的重复命令报错
 * 严格的短选项，长选项报错。避免二义性选项诞生
@@ -22,8 +22,8 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 - [Quick start](#quick-start)
 - [example](#example)
 	- [1. How to use required tags](#required-flag)
-	- [2.Support environment variables](#support-environment-variables)
-	- [3.Set default value](#set-default-value)
+	- [2. Support environment variables](#support-environment-variables)
+	- [3. Set default value](#set-default-value)
 	- [4. How to implement git style commands](#subcommand)
 	- [5. Get command priority](#get-command-priority)
 - [Implementing linux command options](#Implementing-linux-command-options)
@@ -61,23 +61,25 @@ func main() {
 ## example
 ### required flag
 ```go
- package main
+package main
 
 import (
-    "fmt"
-    "github.com/guonaihong/clop"
+	"github.com/guonaihong/clop"
 )
 
 type curl struct {
-    Url string `clop:"-u; --url" usage:"url" valid:"required"`
+	Url string `clop:"-u; --url" usage:"url" valid:"required"`
 }
 
 func main() {
 
-    c := curl{}
-    clop.Bind(&c)
+	c := curl{}
+	clop.Bind(&c)
 }
 
+// ./required 
+// error: -u; --url must have a value!
+// For more information try --help
 ```
 #### set default value
 可以使用default tag设置默认值，普通类型直接写，复合类型用json表示
