@@ -401,8 +401,10 @@ func (c *Clop) parseShort(arg string, index *int) error {
 func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 	// 输出帮助信息
 	if arg == "h" || arg == "help" {
-		c.Usage()
-		return nil
+		if _, ok := c.shortAndLong[arg]; !ok {
+			c.Usage()
+			return nil
+		}
 	}
 	// 取出option对象
 	switch numMinuses {
