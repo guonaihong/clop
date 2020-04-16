@@ -920,3 +920,30 @@ func Test_OptionPriority(t *testing.T) {
 	} {
 	}
 }
+
+func Test_OverloadHelp(t *testing.T) {
+	type help struct {
+		Help  bool `clop:"-h;--help" usage:"Overload help"`
+		Debug bool `clop:"-d;--debug" usage:"debug mode"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			h := help{}
+			p := New([]string{"-h", "-d"}).SetExit(false)
+			err := p.Bind(&h)
+			assert.NoError(t, err)
+			assert.Equal(t, h, help{Help: true, Debug: true})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			h := help{}
+			p := New([]string{"--help"}).SetExit(false)
+			err := p.Bind(&h)
+			assert.NoError(t, err)
+			assert.Equal(t, h, help{Help: true})
+			return struct{}{}
+		}(),
+	} {
+	}
+}
