@@ -26,6 +26,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 	- [3. Set default value](#set-default-value)
 	- [4. How to implement git style commands](#subcommand)
 	- [5. Get command priority](#get-command-priority)
+	- [6. Can only be set once](#can-only-be-set-once)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
 ## Installation
@@ -206,6 +207,30 @@ func main() {
 // 输出 cat -b -E
 // cat -Eb
 // 输出 cat -E -b
+```
+
+
+## Can only be set once
+```go
+package main
+
+import (
+    "github.com/guonaihong/clop"
+)
+
+type Once struct {
+    Debug bool `clop:"-d; --debug; once" usage:"debug mode"`
+}
+
+func main() {
+    o := Once{}
+    clop.Bind(&o)
+}
+/*
+./once -debug -debug
+error: The argument '-d' was provided more than once, but cannot be used multiple times
+For more information try --help
+*/
 ```
 ## Implementing linux command options
 ### cat
