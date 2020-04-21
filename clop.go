@@ -13,10 +13,10 @@ import (
 
 var (
 	ErrDuplicateOptions = errors.New("is already in use")
-	ErrUsageEmpty       = errors.New("usage cannot be empty")
-	ErrUnsupported      = errors.New("unsupported command")
-	ErrNotFoundName     = errors.New("no command line options found")
-	ErrOptionName       = errors.New("Illegal option name")
+	//ErrUsageEmpty       = errors.New("usage cannot be empty")
+	ErrUnsupported  = errors.New("unsupported command")
+	ErrNotFoundName = errors.New("no command line options found")
+	ErrOptionName   = errors.New("Illegal option name")
 )
 
 type unparsedArg struct {
@@ -64,6 +64,9 @@ type Option struct {
 	envName  string //环境变量
 	argsName string //args变量
 	greedy   bool   //贪婪模式 -H a b c 等于-H a -H b -H c
+	// 如果设置once标记，命令行传递-debug -debug这种重复选项会报错
+	// 对slice变量无效
+	once bool //只能设置一次，如果设置once标记，命令行传了两次选项会报错
 
 	showShort []string //help显示的短选项
 	showLong  []string //help显示的长选项
@@ -157,6 +160,11 @@ func setValueAndIndex(val string, option *Option, index int, lowIndex int) error
 	return setBase(val, option.pointer)
 }
 
+func errOnce(optionName string) error {
+	return fmt.Errorf(`error: The argument '-%s' was provided more than once, but cannot be used multiple times`,
+		optionName)
+}
+
 func unknownOptionErrorShort(optionName string) error {
 	return fmt.Errorf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context`,
 		optionName)
@@ -166,82 +174,109 @@ func unknownOptionError(optionName string) error {
 		optionName)
 }
 
+func setBoolAndBoolSliceDefval(pointer reflect.Value, value *string) {
+	kind := pointer.Kind()
+	//bool类型，不考虑false的情况
+	if *value == "" {
+		if reflect.Bool == kind {
+			*value = "true"
+			return
+		}
+
+		if _, isBoolSlice := pointer.Interface().([]bool); isBoolSlice {
+			*value = "true"
+		}
+	}
+
+	return
+
+}
+
+func (c *Clop) parseEqualValue(arg string) (value string, option *Option, err error) {
+	pos := strings.Index(arg, "=")
+	if pos == -1 {
+		return "", nil, unknownOptionError(arg)
+	}
+
+	option, _ = c.shortAndLong[arg[:pos]]
+	if option == nil {
+		return "", nil, unknownOptionError(arg)
+	}
+	value = arg[pos+1:]
+	return value, option, nil
+}
+
+func checkOnce(arg string, option *Option) error {
+	if option.once && !option.pointer.IsZero() {
+		return errOnce(arg)
+	}
+	return nil
+}
+
 // 解析长选项
-func (c *Clop) parseLong(arg string, index *int) error {
+func (c *Clop) parseLong(arg string, index *int) (err error) {
 	var option *Option
 	value := ""
 	option, _ = c.shortAndLong[arg]
 	if option == nil {
-		pos := strings.Index(arg, "=")
-		if pos == -1 {
-			return unknownOptionError(arg)
+		if value, option, err = c.parseEqualValue(arg); err != nil {
+			return err
 		}
-
-		option, _ = c.shortAndLong[arg[:pos]]
-		if option == nil {
-			return unknownOptionError(arg)
-		}
-		value = arg[pos+1:]
 	}
 
 	if len(arg) == 1 {
 		return unknownOptionError(arg)
 	}
 
-	switch option.pointer.Kind() {
-	//bool类型，不考虑false的情况
-	case reflect.Bool:
-		if value == "" {
-			value = "true"
-		}
-	default:
-		_, isBoolSlice := option.pointer.Interface().([]bool)
-		if isBoolSlice {
-			if value == "" {
-				value = "true"
-			}
+	// 设置bool 和bool slice的默认值
+	setBoolAndBoolSliceDefval(option.pointer, &value)
 
-			return setValueAndIndex(value, option, *index, 0)
+	if len(value) > 0 {
+		if err := checkOnce(arg, option); err != nil {
+			return err
 		}
+		return setValueAndIndex(value, option, *index, 0)
+	}
 
-		if len(value) > 0 {
-			return setValueAndIndex(value, option, *index, 0)
-		}
+	// 如果是长选项
+	if *index+1 >= len(c.args) {
+		return errors.New("wrong long option")
+	}
 
-		// 如果是长选项
-		if *index+1 >= len(c.args) {
-			return errors.New("wrong long option")
+	for {
+
+		(*index)++
+		if *index >= len(c.args) {
+			return nil
 		}
 
-		for {
+		value = c.args[*index]
+		// 如果打开贪婪模式，直到遇到-或者最后一个字符才结束
+		if strings.HasPrefix(value, "-") {
+			(*index)-- //回退这个选项
+			return nil
+		}
 
-			(*index)++
-			if *index >= len(c.args) {
+		if err := checkOnce(arg, option); err != nil {
+			return err
+		}
+
+		if err := setValueAndIndex(value, option, *index, 0); err != nil {
+			return err
+		}
+
+		/*
+			if option.pointer.Kind() != reflect.Slice && !option.greedy {
 				return nil
 			}
+		*/
 
-			value = c.args[*index]
-			// 如果打开贪婪模式，直到遇到-或者最后一个字符才结束
-			if strings.HasPrefix(value, "-") {
-				(*index)-- //回退这个选项
-				return nil
-			}
-
-			if err := setValueAndIndex(value, option, *index, 0); err != nil {
-				return err
-			}
-
-			/*
-				if option.pointer.Kind() != reflect.Slice && !option.greedy {
-					return nil
-				}
-			*/
-			if !option.greedy {
-				return nil
-			}
+		if !option.greedy {
+			return nil
 		}
 	}
-	return setValueAndIndex(value, option, *index, 0)
+
+	return nil
 }
 
 // 设置环境变量和参数
@@ -348,6 +383,10 @@ func (c *Clop) parseShort(arg string, index *int) error {
 
 				if findEqual {
 					val = string(value[shortIndex:])
+				}
+
+				if err := checkOnce(value[shortIndex:], option); err != nil {
+					return err
 				}
 
 				if err := setValueAndIndex(val, option, *index, shortIndex); err != nil {
@@ -585,6 +624,8 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, v ref
 			flags |= isLong
 		case strings.HasPrefix(opt, "greedy"):
 			option.greedy = true
+		case strings.HasPrefix(opt, "once"):
+			option.once = true
 		case strings.HasPrefix(opt, "env="):
 			flags |= isEnv
 			option.envName = opt[4:]
