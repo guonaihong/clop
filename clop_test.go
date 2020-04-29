@@ -374,6 +374,7 @@ func Test_API_subcommand(t *testing.T) {
 				err := p.Bind(&g)
 				assert.NoError(t, err)
 				assert.True(t, checkUsage(b))
+				os.Stdout.Write(b.Bytes())
 				return g
 			}(), git{Add: add{}}},
 	} {
