@@ -213,6 +213,20 @@ func checkOnce(arg string, option *Option) error {
 	return nil
 }
 
+func (c *Clop) isRegisterOptions(arg string) bool {
+	num := 0
+	if len(arg) > 0 && arg[0] == '-' {
+		num++
+	}
+
+	if len(arg) > 1 && arg[1] == '-' {
+		num++
+	}
+
+	_, ok := c.shortAndLong[arg[num:]]
+	return ok
+}
+
 // 解析长选项
 func (c *Clop) parseLong(arg string, index *int) (err error) {
 	var option *Option
@@ -251,9 +265,8 @@ func (c *Clop) parseLong(arg string, index *int) (err error) {
 		}
 
 		value = c.args[*index]
-		// 如果打开贪婪模式，直到遇到-或者最后一个字符才结束
-		if strings.HasPrefix(value, "-") {
-			(*index)-- //回退这个选项
+
+		if c.findFallbackOpt(value, index) {
 			return nil
 		}
 
@@ -421,8 +434,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 
 			value = c.args[*index]
 
-			if strings.HasPrefix(value, "-") {
-				(*index)--
+			if c.findFallbackOpt(value, index) {
 				return nil
 			}
 
@@ -435,6 +447,20 @@ func (c *Clop) parseShort(arg string, index *int) error {
 	}
 
 	return unknownOptionErrorShort(arg)
+}
+
+func (c *Clop) findFallbackOpt(value string, index *int) bool {
+
+	// 如果打开贪婪模式，直到遇到-或者最后一个字符才结束
+	if strings.HasPrefix(value, "-") {
+		// 如果这个是命令行选项，而不是负数, 就直接回退选项
+		if c.isRegisterOptions(value) {
+			(*index)-- //回退这个选项
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
