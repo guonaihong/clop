@@ -9,14 +9,20 @@ import (
 
 func init() {
 	funcMap = template.FuncMap{
-		"addSpace": AddSpace,
+		"addSpace": addSpace,
+		"sub":      sub,
 	}
 }
 
 var funcMap map[string]interface{}
 
-func AddSpace(max, cur int) string {
+func addSpace(max, cur int) string {
 	return strings.Repeat(" ", max-cur)
+}
+
+func sub(index int) int {
+	index--
+	return index
 }
 
 type showOption struct {
@@ -54,13 +60,15 @@ func (h *Help) output(w io.Writer) error {
 }
 
 var usageDefaultTmpl = `
-{{ if gt (len .Version) 0}}
+{{- if gt (len .Version) 0}}
 	{{- .Version}}
-{{- end}}
-{{ if gt (len .About) 0}}
+{{end}}
+
+{{- if gt (len .About) 0}}
 	{{- .About}}
-{{- end}}
-{{if or (gt (len .Flags) 0) (gt (len .Options) 0) (gt (len .Args) 0) (gt (len .Subcommand) 0)}}
+{{end}}
+
+{{- if or (gt (len .Flags) 0) (gt (len .Options) 0) (gt (len .Args) 0) (gt (len .Subcommand) 0)}}
 Usage:
     {{if gt (len .ProcessName) 0}}{{.ProcessName}} {{end}}
 {{- if gt (len .Flags) 0}}[Flags] {{end}}
@@ -73,34 +81,57 @@ Usage:
 {{- if gt (len .Flags) 0 }}
 
 Flags:
-{{range $_, $flag:= .Flags}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}}
-{{- if gt (len $flag.Env) 0 }} [env: {{$flag.Env}}]
-{{- end}}
-{{- if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}]
-{{- end}}
+{{- $length := len .Flags}}
+{{- $length = sub $length}}
+{{range $index, $flag:= .Flags}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}}
+{{- if gt (len $flag.Env) 0 }} [env: {{$flag.Env}}] {{- end}}
+{{- if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}] {{- end}}
+{{- if ne $index $length}}
 {{end}}
+{{- end}}
 
 {{- end}}
 
 
 {{- if gt (len .Options) 0 }}
+
 Options:
-{{range $_, $flag:= .Options}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}{{if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}]{{end}}
+{{- $length := len .Options}}
+{{- $length = sub $length}}
+{{range $index, $flag:= .Options}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} 
+{{- if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{- end}}
+{{- if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}]{{- end}}
+{{- if ne $index $length}}
 {{end}}
 
+{{- end}}
 {{- end}}
 
 
 {{- if gt (len .Args) 0}}
+
 Args:
-{{range $_, $flag:= .Args}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
+{{- $length := len .Args}}
+{{- $length = sub $length}}
+{{range $index, $flag:= .Args}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}}
+{{- if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{- end}}
+{{- if ne $index $length}}
 {{end}}
+
+{{- end}}
 {{- end}}
 
 
 {{- if gt (len .Subcommand) 0 }}
+
 Subcommand:
-{{range $_, $flag:= .Subcommand}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} {{if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{end}}
+{{- $length := len .Subcommand}}
+{{- $length = sub $length}}
+{{range $index, $flag:= .Subcommand}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} 
+{{- if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{- end}}
+{{- if ne $index $length}}
+{{end}}
+
 {{- end}}
 {{- end}}
 `
