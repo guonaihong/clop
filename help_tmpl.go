@@ -33,14 +33,15 @@ type showOption struct {
 }
 
 type Help struct {
-	ProcessName string
-	Version     string
-	About       string
-	Flags       []showOption
-	Options     []showOption
-	Args        []showOption
-	Subcommand  []showOption
-	MaxNameLen  int
+	ProcessName      string
+	Version          string
+	About            string
+	Flags            []showOption
+	Options          []showOption
+	Args             []showOption
+	Subcommand       []showOption
+	MaxNameLen       int
+	ShowUsageDefault bool
 }
 
 func (h *Help) output(w io.Writer) error {
@@ -60,6 +61,7 @@ func (h *Help) output(w io.Writer) error {
 }
 
 var usageDefaultTmpl = `
+{{- $ShowUsageDefault := .ShowUsageDefault}}
 {{- if gt (len .Version) 0}}
 	{{- .Version}}
 {{end}}
@@ -85,7 +87,7 @@ Flags:
 {{- $length = sub $length}}
 {{range $index, $flag:= .Flags}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}}
 {{- if gt (len $flag.Env) 0 }} [env: {{$flag.Env}}] {{- end}}
-{{- if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}] {{- end}}
+{{- if and (gt (len $flag.Default) 0) $ShowUsageDefault}} [default: {{$flag.Default}}] {{- end}}
 {{- if ne $index $length}}
 {{end}}
 {{- end}}
@@ -100,7 +102,7 @@ Options:
 {{- $length = sub $length}}
 {{range $index, $flag:= .Options}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} 
 {{- if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{- end}}
-{{- if gt (len $flag.Default) 0 }} [default: {{$flag.Default}}]{{- end}}
+{{- if and (gt (len $flag.Default) 0 ) $ShowUsageDefault}} [default: {{$flag.Default}}]{{- end}}
 {{- if ne $index $length}}
 {{end}}
 

@@ -19,6 +19,11 @@ var (
 	ErrOptionName   = errors.New("Illegal option name")
 )
 
+var (
+	// 显示usage信息里面的[default: xxx]信息，如果为false，就不显示
+	ShowUsageDefault = true
+)
+
 type unparsedArg struct {
 	arg   string
 	index int
@@ -49,7 +54,7 @@ type Clop struct {
 	w                       io.Writer
 }
 
-// 使用递归定义，可以很轻检地解决subcommand嵌套的情况
+// 使用递归定义，可以很轻松地解决subcommand嵌套的情况
 type Subcommand struct {
 	*Clop
 	usage string
@@ -558,6 +563,7 @@ func (c *Clop) genHelpMessage(h *Help) {
 	h.ProcessName = c.procName
 	h.Version = c.version
 	h.About = c.about
+	h.ShowUsageDefault = ShowUsageDefault
 }
 
 func (c *Clop) Usage() {
