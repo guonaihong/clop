@@ -103,23 +103,18 @@ func setSlice(val string, bitSize int, value reflect.Value) error {
 		value = value.Elem()
 	}
 
-	first := false
 	if value.Len() == 0 {
-		first = true
 		// 初始化一个不为空的slice
-		value.Set(reflect.MakeSlice(value.Type(), 1, 1))
+		value.Set(reflect.MakeSlice(value.Type(), 0, 1))
 	}
 
-	v := reflect.New(value.Index(0).Type())
+	v := reflect.New(value.Type().Elem())
 
 	v = v.Elem()
 	if err := setBase(val, v); err != nil {
 		return err
 	}
 
-	if first {
-		value.SetLen(0)
-	}
 	v2 := reflect.Append(value, v)
 	value.Set(v2)
 
