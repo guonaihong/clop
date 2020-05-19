@@ -1,9 +1,10 @@
 package clop
 
 import (
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_Set_setSlice(t *testing.T) {
@@ -41,4 +42,27 @@ func Test_Set_setSlice(t *testing.T) {
 		assert.Equal(t, v.need, v.got)
 	}
 
+}
+
+func Test_Set_resetValue(t *testing.T) {
+
+	for _, v := range []interface{}{
+		func() interface{} {
+			s := "hello"
+			return &s
+		}(),
+		func() interface{} {
+			i := 3
+			return &i
+		}(),
+		func() interface{} {
+			s := []string{"hello", "word"}
+			return &s
+		}(),
+	} {
+		vv := reflect.ValueOf(v).Elem()
+		resetValue(vv)
+		assert.True(t, vv.IsZero())
+
+	}
 }

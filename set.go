@@ -151,3 +151,12 @@ func setBase(val string, value reflect.Value) error {
 
 	return fmt.Errorf("type (%T) unsupported type", value)
 }
+
+func resetValue(value reflect.Value) {
+	if !value.CanSet() {
+		return
+	}
+
+	v := reflect.New(value.Type()).Elem()
+	value.Set(v)
+}

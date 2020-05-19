@@ -73,8 +73,18 @@ type Option struct {
 	// 对slice变量无效
 	once bool //只能设置一次，如果设置once标记，命令行传了两次选项会报错
 
+	set bool //是否通过命令行设置过值
+
 	showShort []string //help显示的短选项
 	showLong  []string //help显示的长选项
+}
+
+func (o *Option) onceResetValue() {
+	if len(o.showDefValue) > 0 && !o.pointer.IsZero() && !o.set {
+		resetValue(o.pointer)
+	}
+
+	o.set = true
 }
 
 func New(args []string) *Clop {
@@ -160,6 +170,7 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long
 }
 
 func setValueAndIndex(val string, option *Option, index int, lowIndex int) error {
+	option.onceResetValue()
 	option.index = uint64(index) << 31
 	option.index |= uint64(lowIndex)
 	return setBase(val, option.pointer)
