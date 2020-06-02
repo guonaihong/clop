@@ -882,3 +882,17 @@ func Test_OverloadHelp(t *testing.T) {
 	} {
 	}
 }
+
+// 内部接口register
+func Test_Internal_register(t *testing.T) {
+	p := New([]string{}).SetExit(false)
+	for k, v := range []interface{}{
+		nil,
+		struct{}{},
+		(*int)(nil),
+	} {
+
+		err := p.Bind(v)
+		assert.Error(t, err, fmt.Sprintf("test case index:%d", k))
+	}
+}
