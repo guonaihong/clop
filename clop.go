@@ -3,12 +3,13 @@ package clop
 import (
 	"errors"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"io"
 	"os"
 	"reflect"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/go-playground/validator/v10"
 )
 
 var (
@@ -787,14 +788,19 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 var emptyField = reflect.StructField{}
 
 func (c *Clop) register(x interface{}) error {
-	v := reflect.ValueOf(x)
-
-	if x == nil || v.IsNil() {
+	if x == nil {
 		return ErrUnsupportedType
 	}
 
+	v := reflect.ValueOf(x)
+
 	if v.Kind() != reflect.Ptr {
 		return fmt.Errorf("%s:got(%T)", ErrNotPointerType, v.Type())
+	}
+
+	// 如果v不是指针 v.IsNil()函数调用会崩溃，所以指针要放到前面判断
+	if v.IsNil() {
+		return ErrUnsupportedType
 	}
 
 	return c.registerCore(v, emptyField)
