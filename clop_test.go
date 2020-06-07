@@ -883,7 +883,7 @@ func Test_OverloadHelp(t *testing.T) {
 	}
 }
 
-// 内部接口register
+// 测试内部register接口
 func Test_Internal_register(t *testing.T) {
 	p := New([]string{}).SetExit(false)
 	for k, v := range []interface{}{
@@ -894,5 +894,25 @@ func Test_Internal_register(t *testing.T) {
 
 		err := p.Bind(v)
 		assert.Error(t, err, fmt.Sprintf("test case index:%d", k))
+	}
+}
+
+// 测试一个-号的情况
+func Test_One_(t *testing.T) {
+	type One struct {
+		Debug  bool   `clop:"-d;--debug" usage:"debug mode"`
+		Stdout string `clop:"args=stdout" usage:"stdout"`
+	}
+
+	for range []struct{}{
+		func() struct{} {
+			o := One{}
+			p := New([]string{"-d", "-"}).SetExit(false)
+			err := p.Bind(&o)
+			assert.NoError(t, err)
+			assert.Equal(t, o, One{Debug: true, Stdout: "-"})
+			return struct{}{}
+		}(),
+	} {
 	}
 }

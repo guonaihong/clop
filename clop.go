@@ -838,6 +838,11 @@ func (c *Clop) parseOneOption(index *int) error {
 	// arg 必须是减号开头的字符串
 	numMinuses := 1
 
+	if arg == "-" {
+		c.unparsedArgs = append(c.unparsedArgs, unparsedArg{arg: arg, index: *index})
+		return nil
+	}
+
 	if arg[1] == '-' {
 		numMinuses++
 	}
