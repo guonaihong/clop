@@ -182,13 +182,20 @@ func errOnce(optionName string) error {
 		optionName)
 }
 
-func unknownOptionErrorShort(optionName string) error {
-	return fmt.Errorf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context`,
+func (c *Clop) unknownOptionErrorShort(optionName string) error {
+	m := fmt.Sprintf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context`,
 		optionName)
+
+	m += c.genMaybeHelpMsg(optionName)
+	return errors.New(m)
 }
-func unknownOptionError(optionName string) error {
-	return fmt.Errorf(`error: Found argument '--%s' which wasn't expected, or isn't valid in this context`,
+
+func (c *Clop) unknownOptionError(optionName string) error {
+	m := fmt.Sprintf(`error: Found argument '--%s' which wasn't expected, or isn't valid in this context`,
 		optionName)
+
+	m += c.genMaybeHelpMsg(optionName)
+	return errors.New(m)
 }
 
 func setBoolAndBoolSliceDefval(pointer reflect.Value, value *string) {
@@ -212,12 +219,12 @@ func setBoolAndBoolSliceDefval(pointer reflect.Value, value *string) {
 func (c *Clop) parseEqualValue(arg string) (value string, option *Option, err error) {
 	pos := strings.Index(arg, "=")
 	if pos == -1 {
-		return "", nil, unknownOptionError(arg)
+		return "", nil, c.unknownOptionError(arg)
 	}
 
 	option, _ = c.shortAndLong[arg[:pos]]
 	if option == nil {
-		return "", nil, unknownOptionError(arg)
+		return "", nil, c.unknownOptionError(arg)
 	}
 	value = arg[pos+1:]
 	return value, option, nil
@@ -256,7 +263,7 @@ func (c *Clop) parseLong(arg string, index *int) (err error) {
 	}
 
 	if len(arg) == 1 {
-		return unknownOptionError(arg)
+		return c.unknownOptionError(arg)
 	}
 
 	// 设置bool 和bool slice的默认值
@@ -378,7 +385,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		option, _ = c.shortAndLong[optionName]
 		if option == nil {
 			//没有注册过的选项直接报错
-			return unknownOptionErrorShort(optionName)
+			return c.unknownOptionErrorShort(optionName)
 		}
 
 		find = true
@@ -463,7 +470,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		return nil
 	}
 
-	return unknownOptionErrorShort(arg)
+	return c.unknownOptionErrorShort(arg)
 }
 
 func (c *Clop) findFallbackOpt(value string, index *int) bool {
