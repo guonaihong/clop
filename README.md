@@ -28,6 +28,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 	- [4. How to implement git style commands](#subcommand)
 	- [5. Get command priority](#get-command-priority)
 	- [6. Can only be set once](#can-only-be-set-once)
+	- [7. Support arrays](#Support-arrays)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
 ## Installation
@@ -233,6 +234,36 @@ error: The argument '-d' was provided more than once, but cannot be used multipl
 For more information try --help
 */
 ```
+## Support arrays
+加上greedy属性，就支持数组贪婪写法。类似join命令。
+如不加，就是类似于curl -H 的写法
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/guonaihong/clop"
+)
+
+type test struct {
+    A []int `clop:"-a;greedy" usage:"test array"`
+    B int   `clop:"-b" usage:"test int"`
+}
+
+func main() {
+    a := &test{}
+    clop.Bind(a)
+    fmt.Printf("%#v\n", a)
+}
+/*
+运行
+./use_array -a 12 34 56 78 -b 100
+输出
+&main.test{A:[]int{12, 34, 56, 78}, B:100}
+*/
+```
+
 ## Implementing linux command options
 ### cat
 ```go
