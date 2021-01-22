@@ -168,13 +168,22 @@ func main() {
 	clop.Bind(&g)
 	fmt.Printf("git:%#v\n", g)
 	fmt.Printf("git:set mv(%t) or set add(%t)\n", clop.IsSetSubcommand("mv"), clop.IsSetSubcommand("add"))
+
+	switch {
+	case clop.IsSetSubcommand("mv"):
+		fmt.Printf("subcommand mv\n")
+	case clop.IsSetSubcommand("add"):
+		fmt.Printf("subcommand add\n")
+	}
 }
+
 // run:
 // ./git add -f
 
 // output:
 // git:main.git{Add:main.add{All:false, Force:true, Pathspec:[]string(nil)}, Mv:main.mv{Force:false}}
 // git:set mv(false) or set add(true)
+// subcommand add
 
 ```
 ## Get command priority
