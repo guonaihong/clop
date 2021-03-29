@@ -29,6 +29,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 	- [5. Get command priority](#get-command-priority)
 	- [6. Can only be set once](#can-only-be-set-once)
 	- [7. Support arrays](#Support-arrays)
+	- [8. Quick write](#quick-write)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
 ## Installation
@@ -222,6 +223,7 @@ func main() {
 
 
 ## Can only be set once
+指定选项只能被设置一次，如果命令行选项，使用两次则会报错。
 ```go
 package main
 
@@ -265,14 +267,48 @@ func main() {
     clop.Bind(a)
     fmt.Printf("%#v\n", a)
 }
-/*
-运行
-./use_array -a 12 34 56 78 -b 100
-输出
-&main.test{A:[]int{12, 34, 56, 78}, B:100}
-*/
+
 ```
 
+## quick write
+快速写法，通过使用固定的short, long tag生成短，长选项。可以和 [cat](#cat) 例子直观比较下。命令行选项越多，越能节约时间，提升效率。
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/guonaihong/clop"
+)
+
+type cat struct {
+	NumberNonblank bool `clop:"-c;long" 
+	                     usage:"number nonempty output lines, overrides"`
+
+	ShowEnds bool `clop:"-E;long" 
+	               usage:"display $ at end of each line"`
+
+	Number bool `clop:"-n;long" 
+	             usage:"number all output lines"`
+
+	SqueezeBlank bool `clop:"-s;long" 
+	                   usage:"suppress repeated empty output lines"`
+
+	ShowTab bool `clop:"-T;long" 
+	              usage:"display TAB characters as ^I"`
+
+	ShowNonprinting bool `clop:"-v;long" 
+	                      usage:"use ^ and M- notation, except for LFD and TAB" `
+
+	Files []string `clop:"args=files"`
+}
+
+func main() {
+ 	c := cat{}
+	err := clop.Bind(&c)
+
+	fmt.Printf("%#v, %s\n", c, err)
+}
+```
 ## Implementing linux command options
 ### cat
 ```go
