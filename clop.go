@@ -636,7 +636,7 @@ func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (
 	return nil, false
 }
 
-func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, v reflect.Value) error {
+func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagName string, v reflect.Value) (err error) {
 	options := strings.Split(clop, ";")
 
 	option := &Option{usage: usage, pointer: v, showDefValue: def}
@@ -657,9 +657,17 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, v ref
 		name := ""
 		// TODO 检查name的长度
 		switch {
-		//注册长选项
+		//注册长选项 --name
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
+			fallthrough
+		case strings.HasPrefix(opt, "long"):
+			if !strings.HasPrefix(opt, "--") {
+				if name, err = gnuOptionName(tagName); err != nil {
+					return err
+				}
+			}
+
 			if err := c.setOption(name, option, c.shortAndLong, true); err != nil {
 				return err
 			}
@@ -668,6 +676,15 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, v ref
 			//注册短选项
 		case strings.HasPrefix(opt, "-"):
 			name = opt[1:]
+			fallthrough
+		case strings.HasPrefix(opt, "short"):
+			if !strings.HasPrefix(opt, "-") {
+				if name, err = gnuOptionName(tagName); err != nil {
+					return err
+				}
+				name = string(name[0])
+			}
+
 			if err := c.setOption(name, option, c.shortAndLong, false); err != nil {
 				return err
 			}
@@ -771,7 +788,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 			}
 		}
 
-		return c.parseTagAndSetOption(clop, usage, def, v)
+		return c.parseTagAndSetOption(clop, usage, def, sf.Name, v)
 	}
 
 	typ := v.Type()
