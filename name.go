@@ -19,10 +19,7 @@ func gnuOptionName(opt string) (string, error) {
 
 			if b != '_' {
 				b = b - 'A' + 'a'
-				err := name.WriteByte(b)
-				if err != nil {
-					return "", err
-				}
+				name.WriteByte(b)
 			}
 
 			continue
