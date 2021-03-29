@@ -268,6 +268,13 @@ func main() {
     fmt.Printf("%#v\n", a)
 }
 
+/*
+运行
+./use_array -a 12 34 56 78 -b 100
+输出
+&main.test{A:[]int{12, 34, 56, 78}, B:100}
+*/
+
 ```
 
 ## quick write
