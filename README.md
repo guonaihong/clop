@@ -26,14 +26,17 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 		- [int](#int)
 		- [float64](#float64)
 		- [time.Duration](#duration)
+		- [string](#string)
+	- [array](#array)
+		- [similar to curl command](#similar-to-curl-command)
+		- [similar to join command](#similar-to-join-command)
 	- [1. How to use required tags](#required-flag)
 	- [2. Support environment variables](#support-environment-variables)
 	- [3. Set default value](#set-default-value)
 	- [4. How to implement git style commands](#subcommand)
 	- [5. Get command priority](#get-command-priority)
 	- [6. Can only be set once](#can-only-be-set-once)
-	- [7. Support arrays](#Support-arrays)
-	- [8. Quick write](#quick-write)
+	- [7. Quick write](#quick-write)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
 ## Installation
@@ -140,6 +143,84 @@ func main() {
 // dd = &{1h0m0s}
 // ./duration --duration 1h
 // dd = &{1h0m0s}
+```
+#### string
+```go
+package main
+
+import (
+        "fmt"
+
+        "github.com/guonaihong/clop"
+)
+
+type StringDemo struct {
+        String string `clop:"short;long" usage:"string"`
+}
+
+func main() {
+        s := &StringDemo{}
+        clop.Bind(s)
+        fmt.Printf("s = %v\n", s)
+}
+// ./string --string hello
+// s = &{hello}
+// ./string -s hello
+// s = &{hello}
+```
+
+## array
+#### similar to curl command
+```go
+package main
+
+import (
+        "fmt"
+
+        "github.com/guonaihong/clop"
+)
+
+type ArrayDemo struct {
+        Header []string `clop:"-H;long" usage:"header"`
+}
+
+func main() {
+        h := &ArrayDemo{}
+        clop.Bind(h)
+        fmt.Printf("h = %v\n", h)
+}
+// ./array -H session:sid --header token:my
+// h = &{[session:sid token:my]}
+```
+## similar to join command
+加上greedy属性，就支持数组贪婪写法。类似join命令。
+```go
+package main
+
+import (
+    "fmt"
+
+    "github.com/guonaihong/clop"
+)
+
+type test struct {
+    A []int `clop:"-a;greedy" usage:"test array"`
+    B int   `clop:"-b" usage:"test int"`
+}
+
+func main() {
+    a := &test{}
+    clop.Bind(a)
+    fmt.Printf("%#v\n", a)
+}
+
+/*
+运行
+./use_array -a 12 34 56 78 -b 100
+输出
+&main.test{A:[]int{12, 34, 56, 78}, B:100}
+*/
+
 ```
 ### required flag
 ```go
@@ -323,37 +404,7 @@ error: The argument '-d' was provided more than once, but cannot be used multipl
 For more information try --help
 */
 ```
-## Support arrays
-加上greedy属性，就支持数组贪婪写法。类似join命令。
-如不加，就是类似于curl -H 的写法
-```go
-package main
 
-import (
-    "fmt"
-
-    "github.com/guonaihong/clop"
-)
-
-type test struct {
-    A []int `clop:"-a;greedy" usage:"test array"`
-    B int   `clop:"-b" usage:"test int"`
-}
-
-func main() {
-    a := &test{}
-    clop.Bind(a)
-    fmt.Printf("%#v\n", a)
-}
-
-/*
-运行
-./use_array -a 12 34 56 78 -b 100
-输出
-&main.test{A:[]int{12, 34, 56, 78}, B:100}
-*/
-
-```
 
 ## quick write
 快速写法，通过使用固定的short, long tag生成短，长选项。可以和 [cat](#cat) 例子直观比较下。命令行选项越多，越能节约时间，提升效率。
