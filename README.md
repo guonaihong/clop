@@ -22,6 +22,10 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 - [Installation](#Installation)
 - [Quick start](#quick-start)
 - [example](#example)
+	- [base type](#base-type)
+		- [int](#int)
+		- [float64](#float64)
+		- [time.Duration](#duration)
 	- [1. How to use required tags](#required-flag)
 	- [2. Support environment variables](#support-environment-variables)
 	- [3. Set default value](#set-default-value)
@@ -63,6 +67,80 @@ func main() {
 
 ```
 ## example
+### base type
+#### int 
+```go
+package main
+
+import (
+        "fmt"
+
+        "github.com/guonaihong/clop"
+)
+
+type IntDemo struct {
+        Int int `clop:"short;long" usage:"int"`
+}
+
+func main() {
+        id := &IntDemo{}
+        clop.Bind(id)
+        fmt.Printf("id = %v\n", id)
+}
+//  ./int -i 3
+// id = &{3}
+// ./int --int 3
+// id = &{3}
+```
+#### float64
+```go
+package main
+
+import (
+        "fmt"
+
+        "github.com/guonaihong/clop"
+)
+
+type Float64Demo struct {
+        Float64 float64 `clop:"short;long" usage:"float64"`
+}
+
+func main() {
+        fd := &Float64Demo{}
+        clop.Bind(fd)
+        fmt.Printf("fd = %v\n", fd)
+}
+// ./float64 -f 3.14
+// fd = &{3.14}
+// ./float64 --float64 3.14
+// fd = &{3.14}
+```
+#### duration
+```go
+package main
+
+import (
+        "fmt"
+        "time"
+
+        "github.com/guonaihong/clop"
+)
+
+type DurationDemo struct {
+        Duration time.Duration `clop:"short;long" usage:"duration"`
+}
+
+func main() {
+        dd := &DurationDemo{}
+        clop.Bind(dd)
+        fmt.Printf("dd = %v\n", dd)
+}
+// ./duration -d 1h
+// dd = &{1h0m0s}
+// ./duration --duration 1h
+// dd = &{1h0m0s}
+```
 ### required flag
 ```go
 package main
