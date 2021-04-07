@@ -1,11 +1,14 @@
 package clop
 
 import (
+	"reflect"
+	"sort"
+	"strings"
+	"sync"
+
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
-	"reflect"
-	"sync"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -37,6 +40,45 @@ func (v *defaultValidator) Engine() interface{} {
 	return v.validate
 }
 
+func showShortLongUsage(clopName string, tagName string) string {
+	var usage []string
+
+	opt := strings.Split(clopName, ";")
+
+	for _, o := range opt {
+
+		o = strings.TrimSpace(o)
+		if len(o) == 0 {
+			continue
+		}
+
+		switch o {
+		case "short":
+			usage = append(usage, "-"+strings.ToLower(string(tagName[0])))
+
+			continue
+		case "long":
+			if len(tagName) > 1 {
+				longName, _ := gnuOptionName(tagName)
+				usage = append(usage, "--"+longName)
+			}
+			continue
+		}
+
+		if o[0] != '-' {
+			continue
+		}
+
+		usage = append(usage, o)
+	}
+
+	sort.Slice(usage, func(i, j int) bool {
+		return len(usage[i]) < len(usage[j])
+	})
+
+	return strings.Join(usage, ";")
+}
+
 func (v *defaultValidator) lazyinit() {
 	v.once.Do(func() {
 		en := en.New()
@@ -48,7 +90,7 @@ func (v *defaultValidator) lazyinit() {
 		en_translations.RegisterDefaultTranslations(v.validate, v.trans)
 
 		v.validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-			return "error: " + fld.Tag.Get("clop")
+			return "error: " + showShortLongUsage(fld.Tag.Get("clop"), fld.Name)
 		})
 
 		v.validate.RegisterTranslation("required", v.trans, func(ut ut.Translator) error {

@@ -3,6 +3,8 @@ package clop
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -266,4 +268,15 @@ func Test_LongAndShort(t *testing.T) {
 		}(),
 	} {
 	}
+}
+
+func Test_Error_Usage(t *testing.T) {
+	type short struct {
+		Int int `clop:"long;short" valid:"required"`
+	}
+
+	var out bytes.Buffer
+	p := New([]string{}).SetExit(false).SetOutput(&out)
+	p.Bind(&short{})
+	io.Copy(os.Stdout, &out)
 }
