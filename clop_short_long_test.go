@@ -3,8 +3,6 @@ package clop
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"os"
 	"strings"
 	"testing"
 
@@ -278,5 +276,16 @@ func Test_Error_Usage(t *testing.T) {
 	var out bytes.Buffer
 	p := New([]string{}).SetExit(false).SetOutput(&out)
 	p.Bind(&short{})
-	io.Copy(os.Stdout, &out)
+
+	needTest := []string{
+		"-i",
+		"--int",
+	}
+
+	usage := out.Bytes()
+	for _, n := range needTest {
+		pos := bytes.Index(usage, []byte(n))
+		assert.NotEqual(t, pos, -1, fmt.Sprintf("search (%s) not found", n))
+	}
+	//io.Copy(os.Stdout, &out)
 }
