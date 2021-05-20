@@ -6,6 +6,26 @@ import (
 	"go/token"
 )
 
+var funcName = map[string]bool{
+	//"Func":true, TODO
+	"Bool":        true,
+	"BoolVar":     true,
+	"Duration":    true,
+	"DurationVar": true,
+	"Float64":     true,
+	"Float64Var":  true,
+	"Int":         true,
+	"IntVar":      true,
+	"Int64":       true,
+	"Int64Var":    true,
+	"String":      true,
+	"StringVar":   true,
+	"Uint":        true,
+	"UintVar":     true,
+	"Uint64":      true,
+	"Uint64Var":   true,
+}
+
 // 解析flag
 type ParseFlag struct {
 	astFile  *ast.File
@@ -36,11 +56,19 @@ func isIdent(expr ast.Expr, name string) bool {
 	return ok && ident.Name == name
 }
 
-func (p *ParseFlag) walk(fn func(ast.Node) bool) {
-	ast.Walk(walker(fn), p.astFile)
+func parserFlagNewFlagSet(stmt *ast.AssignStmt) {
+	if (stmt.Tok == token.ASSIGN || stmt.Tok == token.DEFINE) && len(stmt.Rhs) > 0 {
+		isFunc(stmt.Rhs[0], "flag", "NewFlagSet")
+	}
 }
 
 func (p *ParseFlag) findFuncCalls(node ast.Node) bool {
+	stmt, ok := node.(*ast.AssignStmt)
+	if ok {
+		parserFlagNewFlagSet(stmt)
+		return true
+	}
+
 	call, ok := node.(*ast.CallExpr)
 	if !ok {
 		return true
@@ -63,20 +91,10 @@ func (p *ParseFlag) funcCallsToken() (err error) {
 
 	p.astFile = f
 
-	p.walk(p.findFuncCalls)
+	ast.Inspect(p.astFile, p.findFuncCalls)
 	return nil
 }
 
 func (p *ParseFlag) Parse() {
 	p.funcCallsToken()
-}
-
-type walker func(ast.Node) bool
-
-func (w walker) Visit(node ast.Node) ast.Visitor {
-	if w(node) {
-		return w
-	}
-
-	return nil
 }
