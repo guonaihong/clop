@@ -7,6 +7,7 @@ import (
 	"go/token"
 )
 
+// flag库的解析函数名, 白名称
 var funcName = map[string]int{
 	//"Func":true, TODO
 	"Bool":        3,
@@ -55,6 +56,7 @@ type flagOpt struct {
 	usage   string
 }
 
+// 可以判断是你要的函数, 比如flag.String
 func isFunc(expr ast.Expr, pkg, fn string) bool {
 	f, ok := expr.(*ast.SelectorExpr)
 	return ok && isIdent(f.X, pkg) && isIdent(f.Sel, fn)
@@ -68,6 +70,7 @@ func getPtrArgName(arg ast.Expr) string {
 	return getIdentName(a.X)
 }
 
+// 获取函数名
 func getArgName(arg ast.Expr) string {
 	a, ok := arg.(*ast.BasicLit)
 	if !ok {
@@ -76,6 +79,7 @@ func getArgName(arg ast.Expr) string {
 	return a.Value
 }
 
+// 提取函数名和形参
 func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 	f, ok := expr.(*ast.SelectorExpr)
 	if !ok {
@@ -131,6 +135,7 @@ func getIdentName(expr ast.Expr) string {
 	return ""
 }
 
+// 解析flag.NewFlagSet代码
 func (p *ParseFlag) parserFlagNewFlagSet(stmt *ast.AssignStmt) {
 	if (stmt.Tok == token.ASSIGN || stmt.Tok == token.DEFINE) && len(stmt.Rhs) > 0 {
 		if isFunc(stmt.Rhs[0], "flag", "NewFlagSet") && len(stmt.Lhs) > 0 {
@@ -148,6 +153,7 @@ func (p *ParseFlag) parserFlagNewFlagSet(stmt *ast.AssignStmt) {
 func parserFlagParser() {
 }
 
+// 解析函数调用的代码
 func (p *ParseFlag) findFuncCalls(node ast.Node) bool {
 	stmt, ok := node.(*ast.AssignStmt)
 	if ok {
@@ -165,7 +171,8 @@ func (p *ParseFlag) findFuncCalls(node ast.Node) bool {
 	return true
 }
 
-func (p *ParseFlag) funcCallsToken() (err error) {
+// 获取函数和形参
+func (p *ParseFlag) getFuncCallsToken() (err error) {
 
 	fset := token.NewFileSet()
 
@@ -182,5 +189,5 @@ func (p *ParseFlag) funcCallsToken() (err error) {
 }
 
 func (p *ParseFlag) Parse() {
-	p.funcCallsToken()
+	p.getFuncCallsToken()
 }
