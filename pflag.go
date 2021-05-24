@@ -44,8 +44,9 @@ func NewParseFlag() *ParseFlag {
 
 // 参数
 type funcAndArgs struct {
-	args   []flagOpt
-	outBuf bytes.Buffer
+	args      []flagOpt
+	outBuf    bytes.Buffer
+	haveParse bool
 }
 
 // 保存从ast里面提取出来的元数据
