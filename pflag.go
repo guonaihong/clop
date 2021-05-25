@@ -8,24 +8,29 @@ import (
 )
 
 // flag库的解析函数名, 白名称
-var funcName = map[string]int{
+type argsNumAndType struct {
+	size     int
+	typeName string
+}
+
+var funcName = map[string]argsNumAndType{
 	//"Func":true, TODO
-	"Bool":        3,
-	"BoolVar":     4,
-	"Duration":    3,
-	"DurationVar": 4,
-	"Float64":     3,
-	"Float64Var":  4,
-	"Int":         3,
-	"IntVar":      4,
-	"Int64":       3,
-	"Int64Var":    4,
-	"String":      3,
-	"StringVar":   4,
-	"Uint":        3,
-	"UintVar":     4,
-	"Uint64":      3,
-	"Uint64Var":   4,
+	"Bool":        {3, "bool"},
+	"BoolVar":     {4, "bool"},
+	"Duration":    {3, "time.Duration"},
+	"DurationVar": {4, "time.Duration"},
+	"Float64":     {3, "float64"},
+	"Float64Var":  {4, "float64"},
+	"Int":         {3, "int"},
+	"IntVar":      {4, "int"},
+	"Int64":       {3, "int64"},
+	"Int64Var":    {4, "int64"},
+	"String":      {3, "string"},
+	"StringVar":   {4, "string"},
+	"Uint":        {3, "uint"},
+	"UintVar":     {4, "uint"},
+	"Uint64":      {3, "uint64"},
+	"Uint64Var":   {4, "uint64"},
 }
 
 // 解析flag
@@ -45,16 +50,16 @@ func NewParseFlag() *ParseFlag {
 // 参数
 type funcAndArgs struct {
 	args      []flagOpt
-	outBuf    bytes.Buffer
 	haveParse bool
 }
 
 // 保存从ast里面提取出来的元数据
 type flagOpt struct {
-	varName string
-	optName string
-	defVal  string
-	usage   string
+	varName  string
+	optName  string
+	defVal   string
+	usage    string
+	typeName string
 }
 
 // 可以判断是你要的函数, 比如flag.String
@@ -90,7 +95,7 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 	obj := getIdentName(f.X)
 	fn := getIdentName(f.Sel)
 
-	size, ok := funcName[fn]
+	argsNumType, ok := funcName[fn]
 	if !ok {
 		return
 	}
@@ -99,12 +104,12 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 		p.funcAndArgs[obj] = funcAndArgs{}
 	}
 
-	if size != len(args) {
+	if argsNumType.size != len(args) {
 		return
 	}
 
 	var opt flagOpt
-	if size == 3 {
+	if argsNumType.size == 3 {
 		opt.varName = obj
 		opt.optName = getArgName(args[0])
 		opt.defVal = getArgName(args[1])
@@ -116,6 +121,8 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 		opt.defVal = getArgName(args[2])
 		opt.usage = getArgName(args[3])
 	}
+
+	opt.typeName = argsNumType.typeName
 	oldVal := p.funcAndArgs[fn]
 	oldVal.args = append(oldVal.args, opt)
 	p.funcAndArgs[fn] = oldVal
