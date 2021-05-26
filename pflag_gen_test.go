@@ -1,7 +1,6 @@
 package clop
 
 import (
-	"io"
 	"os"
 	"testing"
 
@@ -35,7 +34,7 @@ func Test_GenStructBytes(t *testing.T) {
 		},
 	}
 
-	err := genStructBytes(&p)
+	all, err := genStructBytes(&p)
 	assert.NoError(t, err)
-	io.Copy(os.Stdout, &p.allOutBuf)
+	os.Stdout.Write(all)
 }

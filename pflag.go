@@ -1,7 +1,6 @@
 package clop
 
 import (
-	"bytes"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -37,9 +36,7 @@ var funcName = map[string]argsNumAndType{
 type ParseFlag struct {
 	astFile     *ast.File
 	fileName    string
-	src         string
 	funcAndArgs map[string]funcAndArgs
-	allOutBuf   bytes.Buffer
 }
 
 // 构造函数
@@ -47,7 +44,23 @@ func NewParseFlag() *ParseFlag {
 	return &ParseFlag{}
 }
 
-// 参数
+// 设置文件名
+func (p *ParseFlag) FromFile(fileName string) *ParseFlag {
+	p.fileName = fileName
+	return p
+}
+
+// 解析
+func (p *ParseFlag) Parse() ([]byte, error) {
+	p.funcAndArgs = make(map[string]funcAndArgs)
+	if err := p.getFuncCallsToken(); err != nil {
+		return nil, err
+	}
+
+	return genStructBytes(p)
+}
+
+// 每个flag库调用的地址都解析成 funcAndArgs结构
 type funcAndArgs struct {
 	args          []flagOpt
 	haveParseFunc bool
@@ -97,6 +110,12 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 
 	argsNumType, ok := funcName[fn]
 	if !ok {
+		if fn == "Parse" {
+			if v, ok := p.funcAndArgs[obj]; ok {
+				v.haveParseFunc = true
+				p.funcAndArgs[obj] = v
+			}
+		}
 		return
 	}
 
@@ -158,9 +177,6 @@ func (p *ParseFlag) parserFlagNewFlagSet(stmt *ast.AssignStmt) {
 	}
 }
 
-func parserFlagParser() {
-}
-
 // 解析函数调用的代码
 func (p *ParseFlag) findFuncCalls(node ast.Node) bool {
 	stmt, ok := node.(*ast.AssignStmt)
@@ -184,7 +200,7 @@ func (p *ParseFlag) getFuncCallsToken() (err error) {
 
 	fset := token.NewFileSet()
 
-	f, err := parser.ParseFile(fset, p.fileName, p.src, 0)
+	f, err := parser.ParseFile(fset, p.fileName, nil, 0)
 	if err != nil {
 		return err
 	}
@@ -194,8 +210,4 @@ func (p *ParseFlag) getFuncCallsToken() (err error) {
 
 	ast.Inspect(p.astFile, p.findFuncCalls)
 	return nil
-}
-
-func (p *ParseFlag) Parse() {
-	p.getFuncCallsToken()
 }

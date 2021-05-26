@@ -7,9 +7,10 @@ import (
 )
 
 // 根据解析的函数名和参数, 生成结构体
-func genStructBytes(p *ParseFlag) error {
+func genStructBytes(p *ParseFlag) ([]byte, error) {
 
 	var code bytes.Buffer
+	var allCode bytes.Buffer
 	for k, funcAndArgs := range p.funcAndArgs {
 		v := funcAndArgs
 		if !v.haveParseFunc {
@@ -59,19 +60,16 @@ func genStructBytes(p *ParseFlag) error {
 
 		code.WriteString("}")
 
-		p.allOutBuf.Write(code.Bytes())
+		allCode.Write(code.Bytes())
 
 		code.Reset()
 
 	}
 
-	fmtCode, err := format.Source(p.allOutBuf.Bytes())
+	fmtCode, err := format.Source(allCode.Bytes())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	p.allOutBuf.Reset()
-	p.allOutBuf.Write(fmtCode)
-
-	return nil
+	return fmtCode, nil
 }
