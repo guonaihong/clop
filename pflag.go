@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"strconv"
 )
 
 // flag库的解析函数名, 白名称
@@ -128,23 +129,37 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 	}
 
 	var opt flagOpt
+	strArgs := make([]string, len(args))
+	for i := range args {
+		arg := ""
+		if len(strArgs) == 4 && i == 0 {
+			arg = getPtrArgName(args[i])
+			continue
+		}
+		arg = getArgName(args[i])
+		a, err := strconv.Unquote(arg)
+		if err != nil {
+		}
+		strArgs[i] = a
+	}
+
 	if argsNumType.size == 3 {
 		opt.varName = obj
-		opt.optName = getArgName(args[0])
-		opt.defVal = getArgName(args[1])
-		opt.usage = getArgName(args[2])
+		opt.optName = strArgs[0]
+		opt.defVal = strArgs[1]
+		opt.usage = strArgs[2]
 
 	} else {
-		opt.varName = getPtrArgName(args[0])
-		opt.optName = getArgName(args[1])
-		opt.defVal = getArgName(args[2])
-		opt.usage = getArgName(args[3])
+		opt.varName = strArgs[0]
+		opt.optName = strArgs[1]
+		opt.defVal = strArgs[2]
+		opt.usage = strArgs[3]
 	}
 
 	opt.typeName = argsNumType.typeName
-	oldVal := p.funcAndArgs[fn]
+	oldVal := p.funcAndArgs[obj]
 	oldVal.args = append(oldVal.args, opt)
-	p.funcAndArgs[fn] = oldVal
+	p.funcAndArgs[obj] = oldVal
 
 }
 
