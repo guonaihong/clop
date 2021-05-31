@@ -100,10 +100,10 @@ func getArgName(arg ast.Expr) string {
 }
 
 // 提取函数名和形参
-func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
+func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) (err error) {
 	f, ok := expr.(*ast.SelectorExpr)
 	if !ok {
-		return
+		return nil
 	}
 
 	obj := getIdentName(f.X)
@@ -117,7 +117,7 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 				p.funcAndArgs[obj] = v
 			}
 		}
-		return
+		return nil
 	}
 
 	if _, ok := p.funcAndArgs[obj]; !ok {
@@ -125,22 +125,29 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 	}
 
 	if argsNumType.size != len(args) {
-		return
+		return nil
 	}
 
 	var opt flagOpt
 	strArgs := make([]string, len(args))
 	for i := range args {
 		arg := ""
+		arg2 := ""
 		if len(strArgs) == 4 && i == 0 {
 			arg = getPtrArgName(args[i])
-			continue
+			goto next
 		}
+
 		arg = getArgName(args[i])
-		a, err := strconv.Unquote(arg)
+
+	next:
+		arg2, err = strconv.Unquote(arg)
 		if err != nil {
+			arg2 = arg
+			//return err
 		}
-		strArgs[i] = a
+
+		strArgs[i] = arg2
 	}
 
 	if argsNumType.size == 3 {
@@ -161,6 +168,7 @@ func (p *ParseFlag) takeFuncNameAndArgs(expr ast.Expr, args []ast.Expr) {
 	oldVal.args = append(oldVal.args, opt)
 	p.funcAndArgs[obj] = oldVal
 
+	return nil
 }
 
 func isIdent(expr ast.Expr, name string) bool {
@@ -205,7 +213,11 @@ func (p *ParseFlag) findFuncCalls(node ast.Node) bool {
 		return true
 	}
 
-	p.takeFuncNameAndArgs(call.Fun, call.Args)
+	err := p.takeFuncNameAndArgs(call.Fun, call.Args)
+	if err != nil {
+		// debug
+		//panic(err.Error())
+	}
 
 	return true
 }
