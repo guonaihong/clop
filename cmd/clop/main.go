@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/guonaihong/clop"
+	"os"
 )
 
 type Cmd struct {
