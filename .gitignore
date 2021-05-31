@@ -9,6 +9,8 @@ go.sum
 *.dylib
 .DS_Store
 .idea
+cmd/clop/clop
+
 
 
 # Test binary, build with `go test -c`
