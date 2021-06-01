@@ -7,6 +7,14 @@ import (
 	"strings"
 )
 
+func genStructName(k string) string {
+	return k + "AutoGen"
+}
+
+func genVarName(varName string) string {
+	return varName + "Var"
+}
+
 // 根据解析的函数名和参数, 生成结构体
 func genStructBytes(p *ParseFlag) ([]byte, error) {
 
@@ -33,7 +41,7 @@ func genStructBytes(p *ParseFlag) ([]byte, error) {
 			continue
 		}
 
-		code.WriteString(fmt.Sprintf("type %sAutoGen struct{", k))
+		code.WriteString(fmt.Sprintf("type %s struct{", genStructName(k)))
 
 		for _, arg := range v.args {
 			// 选项名是比较重要的, 没有就不生成
@@ -79,9 +87,9 @@ func genStructBytes(p *ParseFlag) ([]byte, error) {
 			varName := strings.ToLower(k)
 			code.WriteString(fmt.Sprintf(`
 			func main() {
-			var %sVar %s
+			var %s %s
 			clop.Bind(&%s)
-			}`, varName, k, varName))
+			}`, genVarName(varName), genStructName(k), genVarName(varName)))
 		}
 
 		fmtCode, err := format.Source(code.Bytes())

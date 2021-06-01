@@ -8,7 +8,7 @@ import (
 
 type Cmd struct {
 	FileName   string `clop:"short;long" usage:"go file" valid:"required"`
-	OnlyStruct bool   `clop:"short;long" usage:"only struct" valid:"required"`
+	OnlyStruct bool   `clop:"short;long" usage:"only struct" `
 }
 
 func main() {
