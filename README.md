@@ -17,6 +17,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 * 严格的短选项，长选项报错。避免二义性选项诞生
 * 效验模式支持，不需要写一堆的```if x!= "" ``` or ```if y!=0```浪费青春的代码
 * 可以获取命令优先级别，方便设置命令别名
+* 解析flag包代码生成clop代码
 
 ## 内容
 - [Installation](#Installation)
@@ -37,6 +38,8 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 	- [5. Get command priority](#get-command-priority)
 	- [6. Can only be set once](#can-only-be-set-once)
 	- [7. Quick write](#quick-write)
+	- [Advanced features](#Advanced-features)
+		- [Parsing flag code to generate clop code](#Parsing-flag-code-to-generate-clop-code)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
 ## Installation
@@ -445,6 +448,52 @@ func main() {
 	fmt.Printf("%#v, %s\n", c, err)
 }
 ```
+## Advanced features
+高级功能里面有一些clop包比较有特色的功能
+### Parsing flag code to generate clop code
+让你爽翻天, 如果你的command想迁移至clop, 但是全面众多的flag代码, 又不想花费太多时间在无谓的人肉code转换上, 这时候你就需要clop命令, 一行命令解决你的痛点.
+
+#### 1.安装clop命令
+```bash
+go get github.com/guonaihong/clop/cmd/clop
+```
+#### 2.使用clop解析包含flag包的代码
+就可以把main.go里面的flag库转成clop包的调用方式
+```bash
+clop -f main.go
+````
+```main.go```代码如下
+```go
+package main
+
+import "flag"
+
+func main() {
+	s := flag.String("string", "", "string usage")
+	i := flag.Int("int", "", "int usage")
+	flag.Parse()
+}
+```
+
+输出代码如下
+```go
+package main
+
+import (
+	"github.com/guonaihong/clop"
+)
+
+type flagAutoGen struct {
+	Flag string `clop:"--string" usage:"string usage" `
+	Flag int    `clop:"--int" usage:"int usage" `
+}
+
+func main() {
+	var flagVar flagAutoGen
+	clop.Bind(&flagVar)
+}
+```
+
 ## Implementing linux command options
 ### cat
 ```go
