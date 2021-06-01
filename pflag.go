@@ -35,14 +35,32 @@ var funcName = map[string]argsNumAndType{
 
 // 解析flag
 type ParseFlag struct {
-	astFile     *ast.File
-	fileName    string
-	funcAndArgs map[string]funcAndArgs
+	astFile        *ast.File
+	fileName       string
+	funcAndArgs    map[string]funcAndArgs
+	haveStruct     bool
+	haveImportPath bool
+	haveMain       bool
 }
 
 // 构造函数
 func NewParseFlag() *ParseFlag {
 	return &ParseFlag{}
+}
+
+// 仅生成struct
+func (p *ParseFlag) OnlyStruct() *ParseFlag {
+	p.haveStruct = true
+	return p
+}
+
+// 生成所有
+func (p *ParseFlag) All() *ParseFlag {
+	p.haveStruct = true
+	p.haveImportPath = true
+	p.haveMain = true
+
+	return p
 }
 
 // 设置文件名

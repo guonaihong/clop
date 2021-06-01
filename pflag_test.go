@@ -24,6 +24,7 @@ func Test_Pflag_Parse(t *testing.T) {
 
 		p := NewParseFlag().FromFile(tc.fileName)
 
+		p.OnlyStruct()
 		all, err := p.Parse()
 		assert.NoError(t, err)
 

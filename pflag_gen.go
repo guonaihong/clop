@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
+	"strings"
 )
 
 // 根据解析的函数名和参数, 生成结构体
@@ -11,9 +12,24 @@ func genStructBytes(p *ParseFlag) ([]byte, error) {
 
 	var code bytes.Buffer
 	var allCode bytes.Buffer
+
 	for k, funcAndArgs := range p.funcAndArgs {
 		v := funcAndArgs
 		if !v.haveParseFunc {
+			continue
+		}
+
+		if p.haveImportPath {
+			code.WriteString(`
+
+			package main
+			import (
+				"github.com/guonaihong/clop"
+			)
+			`)
+		}
+
+		if !p.haveStruct {
 			continue
 		}
 
@@ -59,17 +75,25 @@ func genStructBytes(p *ParseFlag) ([]byte, error) {
 		}
 
 		code.WriteString("}")
+		if p.haveMain {
+			varName := strings.ToLower(k)
+			code.WriteString(fmt.Sprintf(`
+			func main() {
+			var %sVar %s
+			clop.Bind(&%s)
+			}`, varName, k, varName))
+		}
 
-		allCode.Write(code.Bytes())
+		fmtCode, err := format.Source(code.Bytes())
+		if err != nil {
+			return nil, err
+		}
+
+		allCode.Write(fmtCode)
 
 		code.Reset()
 
 	}
 
-	fmtCode, err := format.Source(allCode.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return fmtCode, nil
+	return allCode.Bytes(), nil
 }
