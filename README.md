@@ -451,7 +451,7 @@ func main() {
 ## Advanced features
 高级功能里面有一些clop包比较有特色的功能
 ### Parsing flag code to generate clop code
-让你爽翻天, 如果你的command想迁移至clop, 但是全面众多的flag代码, 又不想花费太多时间在无谓的人肉code转换上, 这时候你就需要clop命令, 一行命令解决你的痛点.
+让你爽翻天, 如果你的command想迁移至clop, 但是面对众多的flag代码, 又不想花费太多时间在无谓的人肉code转换上, 这时候你就需要clop命令, 一行命令解决你的痛点.
 
 #### 1.安装clop命令
 ```bash
