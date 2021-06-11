@@ -182,11 +182,11 @@ func errOnce(optionName string) error {
 		optionName)
 }
 
-func (c *Clop) unknownOptionErrorShort(optionName string) error {
+func (c *Clop) unknownOptionErrorShort(optionName string, arg string) error {
 	m := fmt.Sprintf(`error: Found argument '-%s' which wasn't expected, or isn't valid in this context`,
 		optionName)
 
-	m += c.genMaybeHelpMsg(optionName)
+	m += c.genMaybeHelpMsg(arg)
 	return errors.New(m)
 }
 
@@ -385,7 +385,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		option, _ = c.shortAndLong[optionName]
 		if option == nil {
 			//没有注册过的选项直接报错
-			return c.unknownOptionErrorShort(optionName)
+			return c.unknownOptionErrorShort(optionName, arg)
 		}
 
 		find = true
@@ -470,7 +470,7 @@ func (c *Clop) parseShort(arg string, index *int) error {
 		return nil
 	}
 
-	return c.unknownOptionErrorShort(arg)
+	return c.unknownOptionErrorShort(arg, arg)
 }
 
 func (c *Clop) findFallbackOpt(value string, index *int) bool {
