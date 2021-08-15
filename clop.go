@@ -939,6 +939,13 @@ func (c *Clop) Bind(x interface{}) (err error) {
 	return err
 }
 
+// MustBind 和Bind函数类似， 出错直接panic
+func (c *Clop) MustBind(x interface{}) {
+	if err := c.Bind(x); err != nil {
+		panic(err.Error())
+	}
+}
+
 func Usage() {
 	CommandLine.Usage()
 }
@@ -946,6 +953,11 @@ func Usage() {
 func Bind(x interface{}) error {
 	CommandLine.SetProcName(os.Args[0])
 	return CommandLine.Bind(x)
+}
+
+func MustBind(x interface{}) {
+	CommandLine.SetProcName(os.Args[0])
+	CommandLine.MustBind(x)
 }
 
 func IsSetSubcommand(subcommand string) bool {
