@@ -2,10 +2,11 @@ package clop
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func checkUsage(b *bytes.Buffer) bool {
@@ -100,6 +101,9 @@ func Test_Usage_tmpl(t *testing.T) {
 		Args: []showOption{
 			{"<api-url>", "[env: API_URL=]", "", ""},
 			{"<FILE>...", "Files to process", "", ""},
+		},
+		Envs: []showOption{
+			{"OMP_NUM_THREAD", "omp num thread", "", ""},
 		},
 		Subcommand: []showOption{
 			{"add", "Add file contents to the index", "", ""},
