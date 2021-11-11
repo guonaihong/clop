@@ -39,6 +39,7 @@ type Help struct {
 	Flags            []showOption
 	Options          []showOption
 	Args             []showOption
+	Envs             []showOption
 	Subcommand       []showOption
 	MaxNameLen       int
 	ShowUsageDefault bool
@@ -111,7 +112,6 @@ Options:
 
 
 {{- if gt (len .Args) 0}}
-
 Args:
 {{- $length := len .Args}}
 {{- $length = sub $length}}
@@ -123,6 +123,18 @@ Args:
 {{- end}}
 {{- end}}
 
+
+{{- if gt (len .Envs) 0}}
+
+Environment Variable:
+{{- $length := len .Envs}}
+{{- $length = sub $length}}
+{{range $index, $flag:= .Envs}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}}
+{{- if ne $index $length}}
+{{end}}
+
+{{- end}}
+{{- end}}
 
 {{- if gt (len .Subcommand) 0 }}
 

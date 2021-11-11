@@ -506,6 +506,19 @@ func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 	return nil
 }
 
+// ENV_NAME=
+// ENV_NAME
+func (o *Option) genShowEnvNameValue() (env string) {
+	if len(o.envName) > 0 {
+		envValue := os.Getenv(o.envName)
+		env = o.envName
+		if len(envValue) > 0 {
+			env = env + "=" + envValue
+		}
+	}
+	return
+}
+
 func (c *Clop) genHelpMessage(h *Help) {
 
 	// shortAndLong多个key指向一个option,需要used map去重
@@ -529,10 +542,9 @@ func (c *Clop) genHelpMessage(h *Help) {
 				oneArgs = append(oneArgs, "--"+v)
 			}
 
-			env := ""
-			if len(v.envName) > 0 {
-				env = v.envName + "=" + os.Getenv(v.envName)
-			}
+			// 环境变量
+			env := v.genShowEnvNameValue()
+
 			opt := strings.Join(oneArgs, ",")
 
 			if h.MaxNameLen < len(opt) {
@@ -557,6 +569,7 @@ func (c *Clop) genHelpMessage(h *Help) {
 		}
 
 		// args参数
+		oldOpt := opt
 		if len(opt) > 0 {
 			opt = "<" + opt + ">"
 		}
@@ -564,10 +577,12 @@ func (c *Clop) genHelpMessage(h *Help) {
 			h.MaxNameLen = len(opt)
 		}
 
-		env := ""
-		if len(v.envName) > 0 {
-			env = v.envName + "=" + os.Getenv(v.envName)
+		env := v.genShowEnvNameValue()
+		if len(env) > 0 {
+			h.Envs = append(h.Envs, showOption{Opt: oldOpt, Usage: v.usage, Env: env})
+			continue
 		}
+
 		h.Args = append(h.Args, showOption{Opt: opt, Usage: v.usage, Env: env})
 	}
 
