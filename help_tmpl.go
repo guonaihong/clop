@@ -102,7 +102,7 @@ Options:
 {{- $length := len .Options}}
 {{- $length = sub $length}}
 {{range $index, $flag:= .Options}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} 
-{{- if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{- end}}
+{{- if gt (len $flag.Env) 0 }} [env: {{$flag.Env}}]{{- end}}
 {{- if and (gt (len $flag.Default) 0 ) $ShowUsageDefault}} [default: {{$flag.Default}}]{{- end}}
 {{- if ne $index $length}}
 {{end}}
@@ -116,7 +116,7 @@ Args:
 {{- $length := len .Args}}
 {{- $length = sub $length}}
 {{range $index, $flag:= .Args}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}}
-{{- if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{- end}}
+{{- if gt (len $flag.Env) 0 }} [env: {{$flag.Env}}]{{- end}}
 {{- if ne $index $length}}
 {{end}}
 
@@ -142,7 +142,7 @@ Subcommand:
 {{- $length := len .Subcommand}}
 {{- $length = sub $length}}
 {{range $index, $flag:= .Subcommand}}    {{addSpace $maxNameLen (len $flag.Opt)|printf "%s%s" $flag.Opt}}    {{$flag.Usage}} 
-{{- if gt (len $flag.Env) 0 }}[env: {{$flag.Env}}]{{- end}}
+{{- if gt (len $flag.Env) 0 }} [env: {{$flag.Env}}]{{- end}}
 {{- if ne $index $length}}
 {{end}}
 
