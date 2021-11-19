@@ -961,15 +961,32 @@ func (c *Clop) MustBind(x interface{}) {
 	}
 }
 
+// 只注册结构体信息, 不解析
+func (c *Clop) Register(x interface{}) error {
+	return c.register(x)
+}
+
+// 打印帮助信息
 func Usage() {
 	CommandLine.Usage()
 }
 
+func MustRegister(x interface{}) {
+	err := CommandLine.Register(x)
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
+// Bind接口, 包含以下功能
+// 结构体字段注册
+// 命令行解析
 func Bind(x interface{}) error {
 	CommandLine.SetProcName(os.Args[0])
 	return CommandLine.Bind(x)
 }
 
+// Bind必须成功的版本
 func MustBind(x interface{}) {
 	CommandLine.SetProcName(os.Args[0])
 	CommandLine.MustBind(x)
