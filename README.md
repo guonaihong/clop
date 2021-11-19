@@ -38,6 +38,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 	- [5. Get command priority](#get-command-priority)
 	- [6. Can only be set once](#can-only-be-set-once)
 	- [7. Quick write](#quick-write)
+	- [8. Multi structure series](#multi-structure-series)
 	- [Advanced features](#Advanced-features)
 		- [Parsing flag code to generate clop code](#Parsing-flag-code-to-generate-clop-code)
 - [Implementing linux command options](#Implementing-linux-command-options)
@@ -448,6 +449,58 @@ func main() {
 	fmt.Printf("%#v, %s\n", c, err)
 }
 ```
+## Multi structure series
+多结构体串联功能. 多结构体统一组成一个命令行视图
+
+如果命令行解析是要怼到多个(>=2)结构体里面, 可以使用结构体串联功能, 前面几个结构体使用```clop.Register()```接口, 最后一个结构体使用```clop.Bind()```函数.
+```go
+/*
+┌────────────────┐
+│                │
+│                │
+│  ServerAddress │                        ┌──────────────────┐
+├────────────────┤                        │                  │
+│                │   ──────────────────►  │                  │
+│                │                        │  clop.Register() │
+│     Rate       │                        │                  │
+│                │                        └──────────────────┘
+└────────────────┘
+
+
+
+┌────────────────┐
+│                │
+│   ThreadNum    │
+│                │                        ┌───────────────────┐
+│                │                        │                   │
+├────────────────┤   ──────────────────►  │                   │
+│                │                        │ clop.Bind()       │
+│   OpenVad      │                        │                   │
+│                │                        │                   │
+└────────────────┘                        └───────────────────┘
+ */
+
+type Server struct {
+	ServerAddress string `clop:"long" usage:"Server address"`
+	Rate time.Duration `clop:"long" usage:"The speed at which audio is sent"`
+}
+
+type Asr struct{
+	ThreadNum int `clop:"long" usage:"thread number"`
+	OpenVad bool `clop:"long" usage:"open vad"`
+}
+
+ func main() {
+	 asr := Asr{}
+	 ser := Server{}
+	 clop.Register(&asr)
+	 clop.Bind(&ser)
+ }
+
+ // 可以使用如下命令行参数测试下效果
+ // ./example --server-address", ":8080", "--rate", "1s", "--thread-num", "20", "--open-vad"
+ ```
+ 
 ## Advanced features
 高级功能里面有一些clop包比较有特色的功能
 ### Parsing flag code to generate clop code
