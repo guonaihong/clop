@@ -60,3 +60,10 @@ func Test_Merge_Parse(t *testing.T) {
 	assert.Equal(t, ser.Rate, time.Second)
 
 }
+
+// 测试MustRegister接口
+func Test_Merge_MustRegister(t *testing.T) {
+	assert.Panics(t, func() {
+		MustRegister(nil)
+	})
+}
