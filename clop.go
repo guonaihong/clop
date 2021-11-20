@@ -34,12 +34,13 @@ type Clop struct {
 	//指向自己的root clop，如果设置了subcommand这个值是有意义的
 	//非root Clop指向root，root Clop值为nil
 	root         *Clop
-	shortAndLong map[string]*Option  //存放长短选项
-	checkEnv     map[string]struct{} //判断环境变量是否重复注册的
-	checkArgs    map[string]struct{} //判断args是否重复注册
-	envAndArgs   []*Option           //存放环境变量和args
-	args         []string            //原始参数
-	unparsedArgs []unparsedArg       //没有解析的args参数
+	shortAndLong map[string]*Option       //存放长短选项
+	checkEnv     map[string]struct{}      //判断环境变量是否重复注册的
+	checkArgs    map[string]struct{}      //判断args是否重复注册
+	envAndArgs   []*Option                //存放环境变量和args
+	args         []string                 //原始参数
+	unparsedArgs []unparsedArg            //没有解析的args参数
+	allStruct    map[interface{}]struct{} //所有注册过的结构体
 
 	about   string //about信息
 	version string //版本信息
@@ -94,6 +95,7 @@ func New(args []string) *Clop {
 		checkEnv:        make(map[string]struct{}),
 		checkArgs:       make(map[string]struct{}),
 		isSetSubcommand: make(map[string]struct{}), //TODO后期优化下内存,只有root需要初始化
+		allStruct:       make(map[interface{}]struct{}),
 		args:            args,
 		exit:            true,
 		w:               os.Stdout,
@@ -842,6 +844,7 @@ func (c *Clop) register(x interface{}) error {
 		return ErrUnsupportedType
 	}
 
+	c.allStruct[x] = struct{}{}
 	return c.registerCore(v, emptyField)
 }
 
@@ -938,18 +941,25 @@ func (c *Clop) Bind(x interface{}) (err error) {
 		v := reflect.ValueOf(x)
 		v = v.Elem() // x只能是指针，已经在c.register判断过了
 		v = v.FieldByName(c.currSubcommandFieldName)
-		x = v.Interface()
+		// 只有设置过的子命令才需要数据校验
+		// 这里把root结构体删除掉
+		delete(c.allStruct, x)
+		x = v.Addr().Interface()
 	}
 
-	err = valid.ValidateStruct(x)
-	if err != nil {
-		errs := err.(validator.ValidationErrors)
+	c.allStruct[x] = struct{}{}
 
-		for _, e := range errs {
-			// can translate each error one at a time.
-			return errors.New(e.Translate(valid.trans))
+	for x, _ := range c.allStruct {
+		err = valid.ValidateStruct(x)
+		if err != nil {
+			errs := err.(validator.ValidationErrors)
+
+			for _, e := range errs {
+				// can translate each error one at a time.
+				return errors.New(e.Translate(valid.trans))
+			}
+
 		}
-
 	}
 	return err
 }
