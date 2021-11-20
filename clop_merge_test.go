@@ -8,7 +8,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// 测试多结构体串联的help功能
+// 测试用
+type Asr struct {
+	ThreadNum int  `clop:"long" usage:"thread number" valid:"required"`
+	OpenVad   bool `clop:"long" usage:"open vad" valid:"required"`
+}
+
+// 测试用
+type Server struct {
+	ServerAddress string        `clop:"long" usage:"Server address" valid:"required"`
+	Rate          time.Duration `clop:"long" usage:"The speed at which audio is sent" valid:"required"`
+}
+
+// 1.测试多结构体串联的help功能
 func Test_Merge_Help(t *testing.T) {
 	type TestA struct {
 		Aa string `clop:"long" usage:"a"`
@@ -35,18 +47,8 @@ func Test_Merge_Help(t *testing.T) {
 
 }
 
-// 测试多结构体串联的parse功能
+// 2.测试多结构体串联的parse功能
 func Test_Merge_Parse(t *testing.T) {
-	type Server struct {
-		ServerAddress string        `clop:"long" usage:"Server address"`
-		Rate          time.Duration `clop:"long" usage:"The speed at which audio is sent"`
-	}
-
-	type Asr struct {
-		ThreadNum int  `clop:"long" usage:"thread number"`
-		OpenVad   bool `clop:"long" usage:"open vad"`
-	}
-
 	p := New([]string{"--server-address", ":8080", "--rate", "1s", "--thread-num", "20", "--open-vad"}).SetExit(false)
 
 	asr := Asr{}
@@ -61,9 +63,24 @@ func Test_Merge_Parse(t *testing.T) {
 
 }
 
-// 测试MustRegister接口
+// 3.测试MustRegister接口
 func Test_Merge_MustRegister(t *testing.T) {
 	assert.Panics(t, func() {
 		MustRegister(nil)
 	})
+}
+
+// 4.测试结构体串联的数据校验功能
+func Test_Merge_Valid(t *testing.T) {
+	var usage bytes.Buffer
+
+	p := New([]string{"--server-address", ":8080", "--rate", "1s"}).SetExit(false).SetOutput(&usage)
+
+	asr := Asr{}
+	ser := Server{}
+	p.Register(&asr)
+	p.Bind(&ser)
+
+	//os.Stdout.Write(usage.Bytes())
+	assert.True(t, bytes.Contains(usage.Bytes(), []byte("must have a value")))
 }

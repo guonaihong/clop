@@ -456,18 +456,18 @@ func Test_API_valid(t *testing.T) {
 	for range []struct{}{
 
 		func() struct{} {
-			c := cat{}
-			cp := New([]string{}).SetExit(false)
-			err := cp.Bind(&c)
-			assert.Error(t, err)
-			return struct{}{}
-		}(),
-		func() struct{} {
 			g := git{}
 			cp := New([]string{"mv", "-f"}).SetExit(false)
 			err := cp.Bind(&g)
 			assert.NoError(t, err)
 			assert.Equal(t, g, git{Mv: mv{Force: true}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			c := cat{}
+			cp := New([]string{}).SetExit(false)
+			err := cp.Bind(&c)
+			assert.Error(t, err)
 			return struct{}{}
 		}(),
 		func() struct{} {
