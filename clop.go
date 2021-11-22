@@ -653,7 +653,7 @@ func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (
 	return nil, false
 }
 
-func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagName string, v reflect.Value) (err error) {
+func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, fieldName string, v reflect.Value) (err error) {
 	options := strings.Split(clop, ";")
 
 	option := &Option{usage: usage, pointer: v, showDefValue: def}
@@ -680,7 +680,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagNa
 			fallthrough
 		case strings.HasPrefix(opt, "long"):
 			if !strings.HasPrefix(opt, "--") {
-				if name, err = gnuOptionName(tagName); err != nil {
+				if name, err = gnuOptionName(fieldName); err != nil {
 					return err
 				}
 			}
@@ -696,7 +696,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagNa
 			fallthrough
 		case strings.HasPrefix(opt, "short"):
 			if !strings.HasPrefix(opt, "-") {
-				if name, err = gnuOptionName(tagName); err != nil {
+				if name, err = gnuOptionName(fieldName); err != nil {
 					return err
 				}
 				name = string(name[0])
@@ -711,9 +711,18 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagNa
 			option.greedy = true
 		case strings.HasPrefix(opt, "once"):
 			option.once = true
+		case opt == "env":
+			if name, err = envOptionName(fieldName); err != nil {
+				return err
+			}
+			fallthrough
 		case strings.HasPrefix(opt, "env="):
 			flags |= isEnv
-			option.envName = opt[4:]
+			if strings.HasPrefix(opt, "env=") {
+				name = opt[4:]
+			}
+
+			option.envName = name
 			if _, ok := c.checkEnv[option.envName]; ok {
 				return fmt.Errorf("%s: env=%s", ErrDuplicateOptions, option.envName)
 			}

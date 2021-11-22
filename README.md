@@ -33,6 +33,8 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 		- [similar to join command](#similar-to-join-command)
 	- [1. How to use required tags](#required-flag)
 	- [2. Support environment variables](#support-environment-variables)
+		- [2.1 Custom environment variable name](#custom-environment-variable-name)
+		- [2.2 Quick writing of environment variables](#quick-writing-of-environment-variables)
 	- [3. Set default value](#set-default-value)
 	- [4. How to implement git style commands](#subcommand)
 	- [5. Get command priority](#get-command-priority)
@@ -278,6 +280,7 @@ func main() {
 //         {1 3.64 3.32 [one two] [1 2 3 4 5] [1.1 2.2 3.3 4.4 5.5]}
 ```
 ### Support environment variables
+#### custom environment variable name
 ```go
 // file name use_env.go
 package main
@@ -302,6 +305,33 @@ func main() {
 // env XPATH=`pwd` omp_num_thread=3 MAX=4 ./use_env 
 // output
 // main.env{OmpNumThread:"3", Path:"/home/guo", Max:4}
+```
+#### Quick writing of environment variables
+使用env tag会根据结构体名, 生成一个环境变量名, 规则就是驼峰命令名, 改成大写下划线
+```go
+// file name use_env.go
+package main
+
+import (
+	"fmt"
+	"github.com/guonaihong/clop"
+)
+
+type env struct {
+	OmpNumThread string `clop:"env" usage:"omp num thread"`
+	Xpath         string `clop:"env" usage:"xpath"`
+	Max          int    `clop:"env" usage:"max thread"`
+}
+
+func main() {
+	e := env{}
+	clop.Bind(&e)
+	fmt.Printf("%#v\n", e)
+}
+// run
+// env XPATH=`pwd` OMP_NUM_THREAD=3 MAX=4 ./use_env 
+// output
+// main.env{OmpNumThread:"3", Xpath:"/home/guo", Max:4}
 ```
 ### subcommand
 ```go
