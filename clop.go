@@ -249,7 +249,13 @@ func (c *Clop) isRegisterOptions(arg string) bool {
 		num++
 	}
 
-	_, ok := c.shortAndLong[arg[num:]]
+	// 处理value带=的情况
+	end := len(arg)
+	if e := strings.IndexByte(arg, '='); e != -1 {
+		end = e
+	}
+
+	_, ok := c.shortAndLong[arg[num:end]]
 	return ok
 }
 
