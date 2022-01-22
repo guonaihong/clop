@@ -160,12 +160,12 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long
 		return fmt.Errorf("%w:%s:unsupported characters found(%c)", ErrOptionName, name, c)
 	}
 
-	if _, ok := m[name]; ok {
+	if o, ok := m[name]; ok {
 		name = "-" + name
 		if long {
 			name = "-" + name
 		}
-		return fmt.Errorf("%s %w", name, ErrDuplicateOptions)
+		return fmt.Errorf("%s %w, duplicate definition with %s", name, ErrDuplicateOptions, c.showShortAndLong(o))
 	}
 
 	m[name] = option
@@ -527,6 +527,19 @@ func (o *Option) genShowEnvNameValue() (env string) {
 	return
 }
 
+func (c *Clop) showShortAndLong(v *Option) string {
+	var oneArgs []string
+
+	for _, v := range v.showShort {
+		oneArgs = append(oneArgs, "-"+v)
+	}
+
+	for _, v := range v.showLong {
+		oneArgs = append(oneArgs, "--"+v)
+	}
+	return strings.Join(oneArgs, ",")
+}
+
 func (c *Clop) genHelpMessage(h *Help) {
 
 	// shortAndLong多个key指向一个option,需要used map去重
@@ -540,20 +553,10 @@ func (c *Clop) genHelpMessage(h *Help) {
 
 			used[v] = struct{}{}
 
-			var oneArgs []string
-
-			for _, v := range v.showShort {
-				oneArgs = append(oneArgs, "-"+v)
-			}
-
-			for _, v := range v.showLong {
-				oneArgs = append(oneArgs, "--"+v)
-			}
-
 			// 环境变量
 			env := v.genShowEnvNameValue()
 
-			opt := strings.Join(oneArgs, ",")
+			opt := c.showShortAndLong(v)
 
 			if h.MaxNameLen < len(opt) {
 				h.MaxNameLen = len(opt)
