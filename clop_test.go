@@ -483,7 +483,7 @@ func Test_DupTag(t *testing.T) {
 			p := New([]string{}).SetOutput(&o).SetExit(false)
 			err := p.Bind(&d)
 			assert.Error(t, err)
-			assert.Equal(t, o.String(), "-n is already in use\nFor more information try --help\n")
+			assert.Equal(t, o.String(), "-n is already in use, duplicate definition with -n,--number\nFor more information try --help\n")
 			return struct{}{}
 		}(),
 		func() struct{} {
@@ -492,7 +492,7 @@ func Test_DupTag(t *testing.T) {
 			p := New([]string{}).SetOutput(&o).SetExit(false)
 			err := p.Bind(&d)
 			assert.Error(t, err)
-			assert.Equal(t, o.String(), "--number is already in use\nFor more information try --help\n")
+			assert.Equal(t, o.String(), "--number is already in use, duplicate definition with -n,--number\nFor more information try --help\n")
 			return struct{}{}
 		}(),
 	} {
