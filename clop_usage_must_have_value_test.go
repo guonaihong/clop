@@ -26,7 +26,7 @@ func Test_Issue(t *testing.T) {
 		func() string {
 			var out bytes.Buffer
 			testVal := test{}
-			cp := New([]string{"-l"}).SetOutput(&out).SetExit(false)
+			cp := New([]string{"--long"}).SetOutput(&out).SetExit(false)
 			err := cp.Bind(&testVal)
 			assert.Error(t, err)
 			return out.String()
