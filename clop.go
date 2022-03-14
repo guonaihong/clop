@@ -286,7 +286,7 @@ func (c *Clop) parseLong(arg string, index *int) (err error) {
 
 	// 如果是长选项
 	if *index+1 >= len(c.args) {
-		return errors.New("wrong long option")
+		return nil
 	}
 
 	for {
