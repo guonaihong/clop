@@ -80,6 +80,22 @@ func Test_API_subcommand_SubMain(t *testing.T) {
 // 方法2
 func Test_API_subcommand(t *testing.T) {
 
+	type add struct {
+		All      bool     `clop:"-A; --all" usage:"add changes from all tracked and untracked files"`
+		Force    bool     `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+		Pathspec []string `clop:"args=pathspec"`
+		isSet    bool
+	}
+
+	type mv struct {
+		Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+		isSet bool
+	}
+
+	type git struct {
+		Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
+		Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+	}
 	// 测试正确的情况
 	for _, test := range []testAPI{
 		{
