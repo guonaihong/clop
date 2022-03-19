@@ -663,7 +663,6 @@ func (c *Clop) parseSubcommandTag(clop string, v reflect.Value, usage string, fi
 			newClop.fieldName = fieldName
 
 			newClop.subMain = v.Addr().MethodByName("SubMain")
-			fmt.Printf("eoeoeoeoeoeoe:%p, %s, %t\n", newClop, name, newClop.subMain.IsValid())
 			return newClop, true
 		}
 	}
