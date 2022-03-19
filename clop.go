@@ -25,6 +25,12 @@ var (
 	ShowUsageDefault = true
 )
 
+/*
+type SubMain interface {
+	SubMain()
+}
+*/
+
 type unparsedArg struct {
 	arg   string
 	index int
@@ -45,10 +51,11 @@ type Clop struct {
 	about   string //about信息
 	version string //版本信息
 
-	exit       bool                   //测试需要用, -h --help 是否退出进程
-	subcommand map[string]*Subcommand //子命令
+	subMain    reflect.Value          //子命令带SubMain方法, 就会自动调用
+	exit       bool                   //测试需要用, 控制-h --help 是否退出进程
+	subcommand map[string]*Subcommand //子命令, 保存结构体当层的所有子命令的信息
 
-	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用
+	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用, 只有root节点会设置值
 	procName        string              //进程名
 
 	currSubcommandFieldName string //当前使用的子命令结构体名, 只有root才设置该字段
@@ -638,7 +645,7 @@ func (c *Clop) getRoot() (root *Clop) {
 	return root
 }
 
-func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (newClop *Clop, haveSubcommand bool) {
+func (c *Clop) parseSubcommandTag(clop string, v reflect.Value, usage string, fieldName string) (newClop *Clop, haveSubcommand bool) {
 	options := strings.Split(clop, ";")
 	for _, opt := range options {
 		switch {
@@ -655,6 +662,8 @@ func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (
 			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
 			newClop.fieldName = fieldName
 
+			newClop.subMain = v.Addr().MethodByName("SubMain")
+			fmt.Printf("eoeoeoeoeoeoe:%p, %s, %t\n", newClop, name, newClop.subMain.IsValid())
 			return newClop, true
 		}
 	}
@@ -780,7 +789,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 	// 如果是subcommand
 	if v.Kind() == reflect.Struct {
 		if len(clop) != 0 {
-			if newClop, b := c.parseSubcommandTag(clop, usage, sf.Name); b {
+			if newClop, b := c.parseSubcommandTag(clop, v, usage, sf.Name); b {
 				c = newClop
 			}
 		}
@@ -889,7 +898,13 @@ func (c *Clop) parseOneOption(index *int) error {
 
 			newClop.args = c.args[*index+1:]
 			c.args = c.args[0:0]
-			return newClop.bindStruct()
+			err := newClop.bindStruct()
+			if err != nil {
+				return err
+			}
+			if newClop.subMain.IsValid() {
+				newClop.subMain.Call([]reflect.Value{})
+			}
 		}
 		c.unparsedArgs = append(c.unparsedArgs, unparsedArg{arg: arg, index: *index})
 		return nil
@@ -967,7 +982,7 @@ func (c *Clop) Bind(x interface{}) (err error) {
 
 	c.allStruct[x] = struct{}{}
 
-	for x, _ := range c.allStruct {
+	for x := range c.allStruct {
 		err = valid.ValidateStruct(x)
 		if err != nil {
 			errs := err.(validator.ValidationErrors)

@@ -11,7 +11,7 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 * 支持参数搜集 ```cat a.txt b.txt```，可以把```a.txt, b.txt```散装成员归归类，收集到你指定的结构体成员里
 * 支持短选项```proc -d``` 或者长选项```proc --debug```不在话下
 * posix风格命令行支持，支持命令组合```ls -ltr```是```ls -l -t -r```简写形式，方便实现普通posix 标准命令
-* 子命令支持，方便实现git风格子命令```git add ```，简洁的子命令注册方式，只要会写结构体就行，3,4,5到无穷尽子命令也支持，只要你喜欢，用上clop就可以实现
+* 子命令(```subcommand```)支持，方便实现git风格子命令```git add ```，简洁的子命令注册方式，只要会写结构体就行，3,4,5到无穷尽子命令也支持，只要你喜欢，用上clop就可以实现
 * 默认值支持```default:"1"```，支持多种数据类型，让你省去类型转换的烦恼
 * 贴心的重复命令报错
 * 严格的短选项，长选项报错。避免二义性选项诞生
@@ -37,6 +37,8 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 		- [2.2 Quick writing of environment variables](#quick-writing-of-environment-variables)
 	- [3. Set default value](#set-default-value)
 	- [4. How to implement git style commands](#subcommand)
+		- [4.1 Sub command implementation method 1](#sub-command-implementation-method-1)
+		- [4.2 Sub command implementation method 2](#sub-command-implementation-method-2)
 	- [5. Get command priority](#get-command-priority)
 	- [6. Can only be set once](#can-only-be-set-once)
 	- [7. Quick write](#quick-write)
@@ -334,6 +336,7 @@ func main() {
 // main.env{OmpNumThread:"3", Xpath:"/home/guo", Max:4}
 ```
 ### subcommand
+#### Sub command implementation method 1
 ```go
 package main
 
@@ -379,6 +382,46 @@ func main() {
 // git:set mv(false) or set add(true)
 // subcommand add
 
+```
+#### Sub command implementation method 2
+使用clop实现子命令的第2种做法, 子命令结构体只要实现```SubMain```方法, 该方法clop库会帮你自动调用. 省去在main里面写一堆if else判断(相对方法1来说), 特别是子命令特别多的情况, 推荐用这种方法.
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/guonaihong/clop"
+)
+
+type add struct {
+	All      bool     `clop:"-A; --all" usage:"add changes from all tracked and untracked files"`
+	Force    bool     `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+	Pathspec []string `clop:"args=pathspec"`
+}
+
+func (a *add) SubMain() {
+// 当add子命令被设置时
+// clop会自动调用这个函数
+}
+
+type mv struct {
+	Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+}
+
+func (m *mv) SubMain() {
+// 当mv 子命令被设置时
+// clop会自动调用这个函数
+}
+
+type git struct {
+	Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
+	Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+}
+
+func main() {
+	g := git{}
+	clop.Bind(&g)
+}
 ```
 ## Get command priority
 ```go
