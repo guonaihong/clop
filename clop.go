@@ -574,6 +574,14 @@ func (c *Clop) genHelpMessage(h *Help) {
 	// shortAndLong多个key指向一个option,需要used map去重
 	used := make(map[*Option]struct{}, len(c.shortAndLong))
 
+	if c.shortAndLong["h"] == nil && c.shortAndLong["help"] == nil {
+		c.shortAndLong["h"] = &Option{usage: "print the help information", showShort: []string{"h"}, showLong: []string{"help"}}
+	}
+
+	if c.shortAndLong["V"] == nil && c.shortAndLong["version"] == nil {
+		c.shortAndLong["V"] = &Option{usage: "print version information", showShort: []string{"V"}, showLong: []string{"version"}}
+	}
+
 	saveHelp := func(options map[string]*Option) {
 		for _, v := range options {
 			if _, ok := used[v]; ok {
