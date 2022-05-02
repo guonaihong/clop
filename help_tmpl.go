@@ -64,7 +64,7 @@ func (h *Help) output(w io.Writer) error {
 var usageDefaultTmpl = `
 {{- $ShowUsageDefault := .ShowUsageDefault}}
 {{- if gt (len .Version) 0}}
-	{{- .Version}}
+  {{- .ProcessName}} {{.Version}}
 {{end}}
 
 {{- if gt (len .About) 0}}

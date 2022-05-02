@@ -20,6 +20,8 @@ var (
 	ErrOptionName   = errors.New("Illegal option name")
 )
 
+const defautlVersion = "v0.0.1"
+
 var (
 	// 显示usage信息里面的[default: xxx]信息，如果为false，就不显示
 	ShowUsageDefault = true
@@ -61,6 +63,18 @@ type Clop struct {
 	currSubcommandFieldName string //当前使用的子命令结构体名, 只有root才设置该字段
 	fieldName               string //记录当前子结构体字段名, root为空
 	w                       io.Writer
+}
+
+// 设置版本相关信息
+func (c *Clop) SetVersion(version string) *Clop {
+	c.version = version
+	return c
+}
+
+// 设置about相关信息
+func (c *Clop) SetAbout(about string) *Clop {
+	c.about = about
+	return c
 }
 
 // 使用递归定义，可以很轻松地解决subcommand嵌套的情况
@@ -510,6 +524,14 @@ func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 			return nil
 		}
 	}
+
+	// 显示版本信息
+	if arg == "V" || arg == "version" {
+		if _, ok := c.shortAndLong[arg]; !ok {
+			c.showVersion()
+			return nil
+		}
+	}
 	// 取出option对象
 	switch numMinuses {
 	case 2: //长选项
@@ -616,6 +638,14 @@ func (c *Clop) genHelpMessage(h *Help) {
 	h.Version = c.version
 	h.About = c.about
 	h.ShowUsageDefault = ShowUsageDefault
+}
+
+// 显示version信息
+func (c *Clop) showVersion() {
+	fmt.Fprintf(c.w, "%s %s\n", c.procName, c.version)
+	if c.exit {
+		os.Exit(0)
+	}
 }
 
 func (c *Clop) Usage() {
@@ -951,6 +981,11 @@ func (c *Clop) bindStruct() error {
 }
 
 func (c *Clop) Bind(x interface{}) (err error) {
+	// 如果c.version为空就给一个默认值
+	if c.version == "" {
+		c.version = defautlVersion
+	}
+
 	defer func() {
 		if err != nil {
 			fmt.Fprintln(c.w, err)
@@ -1026,6 +1061,15 @@ func MustRegister(x interface{}) {
 func Bind(x interface{}) error {
 	CommandLine.SetProcName(os.Args[0])
 	return CommandLine.Bind(x)
+}
+
+// 设置版本号
+func SetVersion(version string) {
+	CommandLine.SetVersion(version)
+}
+
+func SetAbout(about string) {
+	CommandLine.SetAbout(about)
 }
 
 // Bind必须成功的版本

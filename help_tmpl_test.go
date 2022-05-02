@@ -83,7 +83,7 @@ func Test_Usage_tmpl_CloseDefault(t *testing.T) {
 func Test_Usage_tmpl(t *testing.T) {
 	help := Help{
 		ProcessName: "test",
-		Version:     "clop v0.0.1",
+		Version:     "v0.0.1",
 		About:       "guonaihong development",
 		//Usage:       "--output <output> [--] [FILE]...",
 		Flags: []showOption{

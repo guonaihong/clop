@@ -68,6 +68,8 @@ type Hello struct {
 func main() {
 
 	h := Hello{}
+	clop.SetVersion("v0.2.0")
+	clop.SetAbout("这是一个简单的示例demo")
 	clop.Bind(&h)
 	fmt.Printf("%#v\n", h)
 }
