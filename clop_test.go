@@ -182,68 +182,6 @@ func Test_API_int(t *testing.T) {
 	}
 }
 
-// 测试环境变量
-func Test_API_env(t *testing.T) {
-	type env struct {
-		Url     []string `clop:"-u; --url; env=CLOP-TEST-URL" usage:"URL to work with"`
-		Debug   bool     `clop:"-d; --debug; env=CLOP-DEBUG" usage:"debug"`
-		MaxLine int      `clop:"env=CLOP-MAXLINE" usage:"test int"`
-	}
-
-	for _, test := range []testAPI{
-		{
-			func() env {
-				e := env{}
-				defer func() {
-					os.Unsetenv("CLOP-TEST-URL")
-					os.Unsetenv("CLOP-DEBUG")
-				}()
-				os.Setenv("CLOP-TEST-URL", "godoc.org")
-				err := os.Setenv("CLOP-DEBUG", "")
-
-				assert.NoError(t, err)
-
-				p := New([]string{"-u", "qq.com", "-u", "baidu.com"}).SetExit(false)
-				err = p.Bind(&e)
-				assert.NoError(t, err)
-				return e
-			}(), env{Url: []string{"qq.com", "baidu.com", "godoc.org"}, Debug: true},
-		},
-		{
-			func() env {
-				defer func() {
-					os.Unsetenv("CLOP-MAXLINE")
-				}()
-				err := os.Setenv("CLOP-MAXLINE", "3")
-				assert.NoError(t, err)
-
-				e := env{}
-				p := New([]string{}).SetExit(false)
-				err = p.Bind(&e)
-				assert.NoError(t, err)
-				return e
-			}(), env{MaxLine: 3},
-		},
-		{
-			func() env {
-				defer func() {
-					os.Unsetenv("CLOP-DEBUG")
-				}()
-				err := os.Setenv("CLOP-DEBUG", "false")
-				assert.NoError(t, err)
-
-				e := env{}
-				p := New([]string{}).SetExit(false)
-				err = p.Bind(&e)
-				assert.NoError(t, err)
-				return e
-			}(), env{},
-		},
-	} {
-		assert.Equal(t, test.need, test.got)
-	}
-}
-
 // args
 func Test_API_args(t *testing.T) {
 	type testArgs struct {
@@ -324,64 +262,6 @@ func Test_API_versionAndAbout(t *testing.T) {
 	}
 }
 
-func Test_API_subcommand(t *testing.T) {
-	type add struct {
-		All      bool     `clop:"-A; --all" usage:"add changes from all tracked and untracked files"`
-		Force    bool     `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
-		Pathspec []string `clop:"args=pathspec"`
-	}
-
-	type mv struct {
-		Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
-	}
-
-	type git struct {
-		Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
-		Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
-	}
-
-	// 测试正确的情况
-	for _, test := range []testAPI{
-		{
-			// 测试add子命令
-			func() git {
-				g := git{}
-				p := New([]string{"add", "-Af", "a.txt"}).SetExit(false)
-				err := p.Bind(&g)
-				assert.NoError(t, err)
-				assert.True(t, p.IsSetSubcommand("add"))
-				assert.False(t, p.IsSetSubcommand("mv"))
-				return g
-			}(), git{Add: add{All: true, Force: true, Pathspec: []string{"a.txt"}}}},
-		{
-			// 测试mv子命令
-			func() git {
-				g := git{}
-				p := New([]string{"mv", "-f"}).SetExit(false)
-				err := p.Bind(&g)
-				assert.NoError(t, err)
-				assert.False(t, p.IsSetSubcommand("add"))
-				assert.True(t, p.IsSetSubcommand("mv"))
-				return g
-			}(), git{Mv: mv{Force: true}}},
-		{
-			// 测试-h 输出的Usage
-			func() git {
-				g := git{}
-				p := New([]string{"-h"}).SetExit(false)
-				b := &bytes.Buffer{}
-				p.w = b
-				err := p.Bind(&g)
-				assert.NoError(t, err)
-				assert.True(t, checkUsage(b))
-				os.Stdout.Write(b.Bytes())
-				return g
-			}(), git{Add: add{}}},
-	} {
-		assert.Equal(t, test.need, test.got)
-	}
-}
-
 // 多行usage消息
 func Test_API_head(t *testing.T) {
 	type head struct {
@@ -456,18 +336,18 @@ func Test_API_valid(t *testing.T) {
 	for range []struct{}{
 
 		func() struct{} {
-			c := cat{}
-			cp := New([]string{}).SetExit(false)
-			err := cp.Bind(&c)
-			assert.Error(t, err)
-			return struct{}{}
-		}(),
-		func() struct{} {
 			g := git{}
 			cp := New([]string{"mv", "-f"}).SetExit(false)
 			err := cp.Bind(&g)
 			assert.NoError(t, err)
 			assert.Equal(t, g, git{Mv: mv{Force: true}})
+			return struct{}{}
+		}(),
+		func() struct{} {
+			c := cat{}
+			cp := New([]string{}).SetExit(false)
+			err := cp.Bind(&c)
+			assert.Error(t, err)
 			return struct{}{}
 		}(),
 		func() struct{} {
@@ -545,7 +425,7 @@ func Test_DupTag(t *testing.T) {
 			p := New([]string{}).SetOutput(&o).SetExit(false)
 			err := p.Bind(&d)
 			assert.Error(t, err)
-			assert.Equal(t, o.String(), "-n is already in use\nFor more information try --help\n")
+			assert.Equal(t, o.String(), "-n is already in use, duplicate definition with -n,--number\nFor more information try --help\n")
 			return struct{}{}
 		}(),
 		func() struct{} {
@@ -554,7 +434,7 @@ func Test_DupTag(t *testing.T) {
 			p := New([]string{}).SetOutput(&o).SetExit(false)
 			err := p.Bind(&d)
 			assert.Error(t, err)
-			assert.Equal(t, o.String(), "--number is already in use\nFor more information try --help\n")
+			assert.Equal(t, o.String(), "--number is already in use, duplicate definition with -n,--number\nFor more information try --help\n")
 			return struct{}{}
 		}(),
 	} {

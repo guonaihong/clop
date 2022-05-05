@@ -20,10 +20,18 @@ var (
 	ErrOptionName   = errors.New("Illegal option name")
 )
 
+const defautlVersion = "v0.0.1"
+
 var (
 	// 显示usage信息里面的[default: xxx]信息，如果为false，就不显示
 	ShowUsageDefault = true
 )
+
+/*
+type SubMain interface {
+	SubMain()
+}
+*/
 
 type unparsedArg struct {
 	arg   string
@@ -34,25 +42,39 @@ type Clop struct {
 	//指向自己的root clop，如果设置了subcommand这个值是有意义的
 	//非root Clop指向root，root Clop值为nil
 	root         *Clop
-	shortAndLong map[string]*Option  //存放长短选项
-	checkEnv     map[string]struct{} //判断环境变量是否重复注册的
-	checkArgs    map[string]struct{} //判断args是否重复注册
-	envAndArgs   []*Option           //存放环境变量和args
-	args         []string            //原始参数
-	unparsedArgs []unparsedArg       //没有解析的args参数
+	shortAndLong map[string]*Option       //存放长短选项
+	checkEnv     map[string]struct{}      //判断环境变量是否重复注册的
+	checkArgs    map[string]struct{}      //判断args是否重复注册
+	envAndArgs   []*Option                //存放环境变量和args
+	args         []string                 //原始参数
+	unparsedArgs []unparsedArg            //没有解析的args参数
+	allStruct    map[interface{}]struct{} //所有注册过的结构体
 
 	about   string //about信息
 	version string //版本信息
 
-	exit       bool                   //测试需要用, -h --help 是否退出进程
-	subcommand map[string]*Subcommand //子命令
+	subMain    reflect.Value          //子命令带SubMain方法, 就会自动调用
+	exit       bool                   //测试需要用, 控制-h --help 是否退出进程
+	subcommand map[string]*Subcommand //子命令, 保存结构体当层的所有子命令的信息
 
-	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用
+	isSetSubcommand map[string]struct{} //用于查询哪个子命令被使用, 只有root节点会设置值
 	procName        string              //进程名
 
 	currSubcommandFieldName string //当前使用的子命令结构体名, 只有root才设置该字段
 	fieldName               string //记录当前子结构体字段名, root为空
 	w                       io.Writer
+}
+
+// 设置版本相关信息
+func (c *Clop) SetVersion(version string) *Clop {
+	c.version = version
+	return c
+}
+
+// 设置about相关信息
+func (c *Clop) SetAbout(about string) *Clop {
+	c.about = about
+	return c
 }
 
 // 使用递归定义，可以很轻松地解决subcommand嵌套的情况
@@ -94,6 +116,7 @@ func New(args []string) *Clop {
 		checkEnv:        make(map[string]struct{}),
 		checkArgs:       make(map[string]struct{}),
 		isSetSubcommand: make(map[string]struct{}), //TODO后期优化下内存,只有root需要初始化
+		allStruct:       make(map[interface{}]struct{}),
 		args:            args,
 		exit:            true,
 		w:               os.Stdout,
@@ -158,12 +181,12 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long
 		return fmt.Errorf("%w:%s:unsupported characters found(%c)", ErrOptionName, name, c)
 	}
 
-	if _, ok := m[name]; ok {
+	if o, ok := m[name]; ok {
 		name = "-" + name
 		if long {
 			name = "-" + name
 		}
-		return fmt.Errorf("%s %w", name, ErrDuplicateOptions)
+		return fmt.Errorf("%s %w, duplicate definition with %s", name, ErrDuplicateOptions, c.showShortAndLong(o))
 	}
 
 	m[name] = option
@@ -247,7 +270,13 @@ func (c *Clop) isRegisterOptions(arg string) bool {
 		num++
 	}
 
-	_, ok := c.shortAndLong[arg[num:]]
+	// 处理value带=的情况
+	end := len(arg)
+	if e := strings.IndexByte(arg, '='); e != -1 {
+		end = e
+	}
+
+	_, ok := c.shortAndLong[arg[num:end]]
 	return ok
 }
 
@@ -278,7 +307,7 @@ func (c *Clop) parseLong(arg string, index *int) (err error) {
 
 	// 如果是长选项
 	if *index+1 >= len(c.args) {
-		return errors.New("wrong long option")
+		return nil
 	}
 
 	for {
@@ -495,6 +524,14 @@ func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 			return nil
 		}
 	}
+
+	// 显示版本信息
+	if arg == "V" || arg == "version" {
+		if _, ok := c.shortAndLong[arg]; !ok {
+			c.showVersion()
+			return nil
+		}
+	}
 	// 取出option对象
 	switch numMinuses {
 	case 2: //长选项
@@ -519,10 +556,31 @@ func (o *Option) genShowEnvNameValue() (env string) {
 	return
 }
 
+func (c *Clop) showShortAndLong(v *Option) string {
+	var oneArgs []string
+
+	for _, v := range v.showShort {
+		oneArgs = append(oneArgs, "-"+v)
+	}
+
+	for _, v := range v.showLong {
+		oneArgs = append(oneArgs, "--"+v)
+	}
+	return strings.Join(oneArgs, ",")
+}
+
 func (c *Clop) genHelpMessage(h *Help) {
 
 	// shortAndLong多个key指向一个option,需要used map去重
 	used := make(map[*Option]struct{}, len(c.shortAndLong))
+
+	if c.shortAndLong["h"] == nil && c.shortAndLong["help"] == nil {
+		c.shortAndLong["h"] = &Option{usage: "print the help information", showShort: []string{"h"}, showLong: []string{"help"}}
+	}
+
+	if c.shortAndLong["V"] == nil && c.shortAndLong["version"] == nil {
+		c.shortAndLong["V"] = &Option{usage: "print version information", showShort: []string{"V"}, showLong: []string{"version"}}
+	}
 
 	saveHelp := func(options map[string]*Option) {
 		for _, v := range options {
@@ -532,20 +590,10 @@ func (c *Clop) genHelpMessage(h *Help) {
 
 			used[v] = struct{}{}
 
-			var oneArgs []string
-
-			for _, v := range v.showShort {
-				oneArgs = append(oneArgs, "-"+v)
-			}
-
-			for _, v := range v.showLong {
-				oneArgs = append(oneArgs, "--"+v)
-			}
-
 			// 环境变量
 			env := v.genShowEnvNameValue()
 
-			opt := strings.Join(oneArgs, ",")
+			opt := c.showShortAndLong(v)
 
 			if h.MaxNameLen < len(opt) {
 				h.MaxNameLen = len(opt)
@@ -600,6 +648,14 @@ func (c *Clop) genHelpMessage(h *Help) {
 	h.ShowUsageDefault = ShowUsageDefault
 }
 
+// 显示version信息
+func (c *Clop) showVersion() {
+	fmt.Fprintf(c.w, "%s %s\n", c.procName, c.version)
+	if c.exit {
+		os.Exit(0)
+	}
+}
+
 func (c *Clop) Usage() {
 	c.printHelpMessage()
 	if c.exit {
@@ -627,7 +683,7 @@ func (c *Clop) getRoot() (root *Clop) {
 	return root
 }
 
-func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (newClop *Clop, haveSubcommand bool) {
+func (c *Clop) parseSubcommandTag(clop string, v reflect.Value, usage string, fieldName string) (newClop *Clop, haveSubcommand bool) {
 	options := strings.Split(clop, ";")
 	for _, opt := range options {
 		switch {
@@ -644,6 +700,7 @@ func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (
 			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
 			newClop.fieldName = fieldName
 
+			newClop.subMain = v.Addr().MethodByName("SubMain")
 			return newClop, true
 		}
 	}
@@ -651,7 +708,7 @@ func (c *Clop) parseSubcommandTag(clop string, usage string, fieldName string) (
 	return nil, false
 }
 
-func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagName string, v reflect.Value) (err error) {
+func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, fieldName string, v reflect.Value) (err error) {
 	options := strings.Split(clop, ";")
 
 	option := &Option{usage: usage, pointer: v, showDefValue: def}
@@ -678,7 +735,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagNa
 			fallthrough
 		case strings.HasPrefix(opt, "long"):
 			if !strings.HasPrefix(opt, "--") {
-				if name, err = gnuOptionName(tagName); err != nil {
+				if name, err = gnuOptionName(fieldName); err != nil {
 					return err
 				}
 			}
@@ -694,7 +751,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagNa
 			fallthrough
 		case strings.HasPrefix(opt, "short"):
 			if !strings.HasPrefix(opt, "-") {
-				if name, err = gnuOptionName(tagName); err != nil {
+				if name, err = gnuOptionName(fieldName); err != nil {
 					return err
 				}
 				name = string(name[0])
@@ -709,9 +766,18 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, tagNa
 			option.greedy = true
 		case strings.HasPrefix(opt, "once"):
 			option.once = true
+		case opt == "env":
+			if name, err = envOptionName(fieldName); err != nil {
+				return err
+			}
+			fallthrough
 		case strings.HasPrefix(opt, "env="):
 			flags |= isEnv
-			option.envName = opt[4:]
+			if strings.HasPrefix(opt, "env=") {
+				name = opt[4:]
+			}
+
+			option.envName = name
 			if _, ok := c.checkEnv[option.envName]; ok {
 				return fmt.Errorf("%s: env=%s", ErrDuplicateOptions, option.envName)
 			}
@@ -760,7 +826,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 	// 如果是subcommand
 	if v.Kind() == reflect.Struct {
 		if len(clop) != 0 {
-			if newClop, b := c.parseSubcommandTag(clop, usage, sf.Name); b {
+			if newClop, b := c.parseSubcommandTag(clop, v, usage, sf.Name); b {
 				c = newClop
 			}
 		}
@@ -842,6 +908,7 @@ func (c *Clop) register(x interface{}) error {
 		return ErrUnsupportedType
 	}
 
+	c.allStruct[x] = struct{}{}
 	return c.registerCore(v, emptyField)
 }
 
@@ -868,7 +935,13 @@ func (c *Clop) parseOneOption(index *int) error {
 
 			newClop.args = c.args[*index+1:]
 			c.args = c.args[0:0]
-			return newClop.bindStruct()
+			err := newClop.bindStruct()
+			if err != nil {
+				return err
+			}
+			if newClop.subMain.IsValid() {
+				newClop.subMain.Call([]reflect.Value{})
+			}
 		}
 		c.unparsedArgs = append(c.unparsedArgs, unparsedArg{arg: arg, index: *index})
 		return nil
@@ -916,6 +989,11 @@ func (c *Clop) bindStruct() error {
 }
 
 func (c *Clop) Bind(x interface{}) (err error) {
+	// 如果c.version为空就给一个默认值
+	if c.version == "" {
+		c.version = defautlVersion
+	}
+
 	defer func() {
 		if err != nil {
 			fmt.Fprintln(c.w, err)
@@ -938,18 +1016,25 @@ func (c *Clop) Bind(x interface{}) (err error) {
 		v := reflect.ValueOf(x)
 		v = v.Elem() // x只能是指针，已经在c.register判断过了
 		v = v.FieldByName(c.currSubcommandFieldName)
-		x = v.Interface()
+		// 只有设置过的子命令才需要数据校验
+		// 这里把root结构体删除掉
+		delete(c.allStruct, x)
+		x = v.Addr().Interface()
 	}
 
-	err = valid.ValidateStruct(x)
-	if err != nil {
-		errs := err.(validator.ValidationErrors)
+	c.allStruct[x] = struct{}{}
 
-		for _, e := range errs {
-			// can translate each error one at a time.
-			return errors.New(e.Translate(valid.trans))
+	for x := range c.allStruct {
+		err = valid.ValidateStruct(x)
+		if err != nil {
+			errs := err.(validator.ValidationErrors)
+
+			for _, e := range errs {
+				// can translate each error one at a time.
+				return errors.New(e.Translate(valid.trans))
+			}
+
 		}
-
 	}
 	return err
 }
@@ -961,15 +1046,41 @@ func (c *Clop) MustBind(x interface{}) {
 	}
 }
 
+// 只注册结构体信息, 不解析
+func (c *Clop) Register(x interface{}) error {
+	return c.register(x)
+}
+
+// 打印帮助信息
 func Usage() {
 	CommandLine.Usage()
 }
 
+func MustRegister(x interface{}) {
+	err := CommandLine.Register(x)
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
+// Bind接口, 包含以下功能
+// 结构体字段注册
+// 命令行解析
 func Bind(x interface{}) error {
 	CommandLine.SetProcName(os.Args[0])
 	return CommandLine.Bind(x)
 }
 
+// 设置版本号
+func SetVersion(version string) {
+	CommandLine.SetVersion(version)
+}
+
+func SetAbout(about string) {
+	CommandLine.SetAbout(about)
+}
+
+// Bind必须成功的版本
 func MustBind(x interface{}) {
 	CommandLine.SetProcName(os.Args[0])
 	CommandLine.MustBind(x)
