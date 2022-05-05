@@ -10,7 +10,7 @@ import (
 )
 
 // 测试显示信息, 普通命令
-func Test_Version_Show2(t *testing.T) {
+func Test_Version_Show(t *testing.T) {
 	type show struct {
 		Max int `clop:"short;long" usage:"max threads"`
 	}
@@ -19,18 +19,8 @@ func Test_Version_Show2(t *testing.T) {
 	cmd := New([]string{"-h"}).SetProcName("Test_Version_Show").SetVersion("v0.0.2").SetExit(false).SetOutput(&buf)
 	cmd.MustBind(&show{})
 
-	assert.NotEqual(t, strings.Index(buf.String(), "v0.0.2"), -1)
 	assert.NotEqual(t, strings.Index(buf.String(), "print version information"), -1)
 	assert.NotEqual(t, strings.Index(buf.String(), "print the help information"), -1)
-}
-
-// 测试显示信息
-func Test_Version_Show(t *testing.T) {
-	var buf bytes.Buffer
-	cmd := New([]string{"-h"}).SetProcName("Test_Version_Show").SetVersion("v0.0.2").SetExit(false).SetOutput(&buf)
-	cmd.MustBind(&git{})
-
-	assert.NotEqual(t, strings.Index(buf.String(), "v0.0.2"), -1)
 }
 
 // 测试about信息
