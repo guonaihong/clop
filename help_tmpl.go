@@ -61,18 +61,11 @@ func (h *Help) output(w io.Writer) error {
 	return tmpl.Execute(w, *h)
 }
 
-var usageDefaultTmpl = `
-{{- $ShowUsageDefault := .ShowUsageDefault}}
-{{- if gt (len .Version) 0}}
-  {{- .ProcessName}} {{.Version}}
-{{end}}
+var usageDefaultTmpl = `{{- $ShowUsageDefault := .ShowUsageDefault}}{{- if gt (len .About) 0}}
+{{- .About}}
 
-{{- if gt (len .About) 0}}
-	{{- .About}}
 {{end}}
-
-{{- if or (gt (len .Flags) 0) (gt (len .Options) 0) (gt (len .Args) 0) (gt (len .Subcommand) 0)}}
-Usage:
+{{- if or (gt (len .Flags) 0) (gt (len .Options) 0) (gt (len .Args) 0) (gt (len .Subcommand) 0)}}Usage:
     {{if gt (len .ProcessName) 0}}{{.ProcessName}} {{end}}
 {{- if gt (len .Flags) 0}}[Flags] {{end}}
 {{- if gt (len .Options) 0}}[Options] {{end}}
