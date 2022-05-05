@@ -51,7 +51,7 @@ func Test_Version_Option_Short(t *testing.T) {
 	cmd := New([]string{"-V"}).SetProcName(procName).SetVersion(version).SetExit(false).SetOutput(&buf)
 	cmd.MustBind(&git{})
 
-	assert.NotEqual(t, strings.Index(buf.String(), fmt.Sprintf("%s %s\n", procName, version)), -1)
+	assert.NotEqual(t, strings.Index(buf.String(), version), -1)
 }
 
 // 测试 --version
@@ -62,7 +62,7 @@ func Test_Version_Option_Long(t *testing.T) {
 	cmd := New([]string{"--version"}).SetProcName(procName).SetVersion(version).SetExit(false).SetOutput(&buf)
 	cmd.MustBind(&git{})
 
-	assert.NotEqual(t, strings.Index(buf.String(), fmt.Sprintf("%s %s\n", procName, version)), -1)
+	assert.NotEqual(t, strings.Index(buf.String(), version), -1)
 }
 
 // 测试-V
