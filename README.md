@@ -1,12 +1,15 @@
 # clop
+
 [![Go](https://github.com/guonaihong/clop/workflows/Go/badge.svg)](https://github.com/guonaihong/clop/actions)
 [![codecov](https://codecov.io/gh/guonaihong/clop/branch/master/graph/badge.svg)](https://codecov.io/gh/guonaihong/clop)
 [![Go Report Card](https://goreportcard.com/badge/github.com/guonaihong/clop)](https://goreportcard.com/report/github.com/guonaihong/clop)
 
-clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。(从零实现)
-![clop.png](https://github.com/guonaihong/images/blob/master/clop.png?raw=true)
+clop (Command Line Option Parse)是一款基于struct的命令行解析器，麻雀虽小，五脏俱全(从零实现)。
+
+![clop.png](https://github.com/guonaihong/images/blob/master/clop/clop.png)
 
 ## feature
+
 * 支持环境变量绑定 ```env DEBUG=xx ./proc```
 * 支持参数搜集 ```cat a.txt b.txt```，可以把```a.txt, b.txt```散装成员归归类，收集到你指定的结构体成员里
 * 支持短选项```proc -d``` 或者长选项```proc --debug```不在话下
@@ -19,7 +22,10 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 * 可以获取命令优先级别，方便设置命令别名
 * 解析flag包代码生成clop代码
 
+![feature list](https://github.com/guonaihong/images/blob/master/clop/featurelist.png)
+
 ## 内容
+
 - [Installation](#Installation)
 - [Quick start](#quick-start)
 - [example](#example)
@@ -47,12 +53,15 @@ clop 是一款基于struct的命令行解析器，麻雀虽小，五脏俱全。
 		- [Parsing flag code to generate clop code](#Parsing-flag-code-to-generate-clop-code)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
+
 ## Installation
+
 ```
 go get github.com/guonaihong/clop
 ```
 
 ## Quick start
+
 ```go
 package main
 
