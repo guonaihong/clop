@@ -1,5 +1,5 @@
 ---
-name: "\U0001F91E Ask a Question"
+name: "\U0001F600 Ask a Question"
 about: I want to ask a question.
 labels: type/question
 ---
