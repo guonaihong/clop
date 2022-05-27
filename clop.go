@@ -650,7 +650,7 @@ func (c *Clop) genHelpMessage(h *Help) {
 
 // 显示version信息
 func (c *Clop) showVersion() {
-	fmt.Fprint(c.w, c.version)
+	fmt.Fprintln(c.w, c.version)
 	if c.exit {
 		os.Exit(0)
 	}
