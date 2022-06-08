@@ -28,9 +28,19 @@ func (m *mv) SubMain() {
 	m.isSet = true
 }
 
+type touch struct {
+	Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+	isSet bool
+}
+
+func (t *touch) SubMain() {
+	t.isSet = true
+}
+
 type git struct {
-	Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
-	Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+	Add   add   `clop:"subcommand=add" usage:"Add file contents to the index"`
+	Mv    mv    `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+	Touch touch `clop:"subcommand" usage:"touch file to the index"`
 }
 
 // 方法1
@@ -59,6 +69,15 @@ func Test_API_subcommand_SubMain(t *testing.T) {
 				assert.NoError(t, err)
 				return g
 			}(), git{Mv: mv{Force: true, isSet: true}}},
+		{
+			// 测试touch子命令
+			func() git {
+				g := git{}
+				p := New([]string{"touch", "-f"}).SetExit(false)
+				err := p.Bind(&g)
+				assert.NoError(t, err)
+				return g
+			}(), git{Touch: touch{Force: true, isSet: true}}},
 		{
 			// 测试-h 输出的Usage
 			func() git {
@@ -92,9 +111,15 @@ func Test_API_subcommand(t *testing.T) {
 		isSet bool
 	}
 
+	type touch struct {
+		Force bool `clop:"-f; --force" usage:"allow adding otherwise ignored files"`
+		isSet bool
+	}
+
 	type git struct {
-		Add add `clop:"subcommand=add" usage:"Add file contents to the index"`
-		Mv  mv  `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+		Add   add   `clop:"subcommand=add" usage:"Add file contents to the index"`
+		Mv    mv    `clop:"subcommand=mv" usage:"Move or rename a file, a directory, or a symlink"`
+		Touch touch `clop:"subcommand" usage:"touch file to the index"`
 	}
 	// 测试正确的情况
 	for _, test := range []testAPI{
@@ -120,6 +145,17 @@ func Test_API_subcommand(t *testing.T) {
 				assert.True(t, p.IsSetSubcommand("mv"))
 				return g
 			}(), git{Mv: mv{Force: true}}},
+		{
+			// 测试touch子命令
+			func() git {
+				g := git{}
+				p := New([]string{"touch", "-f"}).SetExit(false)
+				err := p.Bind(&g)
+				assert.NoError(t, err)
+				assert.False(t, p.IsSetSubcommand("add"))
+				assert.True(t, p.IsSetSubcommand("touch"))
+				return g
+			}(), git{Touch: touch{Force: true}}},
 		{
 			// 测试-h 输出的Usage
 			func() git {

@@ -686,13 +686,18 @@ func (c *Clop) getRoot() (root *Clop) {
 func (c *Clop) parseSubcommandTag(clop string, v reflect.Value, usage string, fieldName string) (newClop *Clop, haveSubcommand bool) {
 	options := strings.Split(clop, ";")
 	for _, opt := range options {
+		var name string
 		switch {
 		case strings.HasPrefix(opt, "subcommand="):
+			name = opt[len("subcommand="):]
+		case opt == "subcommand":
+			name = strings.ToLower(fieldName)
+		}
+		if name != "" {
 			if c.subcommand == nil {
 				c.subcommand = make(map[string]*Subcommand, 3)
 			}
 
-			name := opt[len("subcommand="):]
 			newClop := New(nil)
 			//newClop.exit = c.exit //继承exit属性
 			newClop.SetProcName(name)
