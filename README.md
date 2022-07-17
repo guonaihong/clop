@@ -21,6 +21,7 @@ clop (Command Line Option Parse)是一款基于struct的命令行解析器，麻
 * 效验模式支持，不需要写一堆的```if x!= "" ``` or ```if y!=0```浪费青春的代码
 * 可以获取命令优先级别，方便设置命令别名
 * 解析flag包代码生成clop代码
+* 指定`解析`函数， 自动绑定数据
 
 ![feature list](https://github.com/guonaihong/images/blob/master/clop/featurelist.png)
 
@@ -49,6 +50,7 @@ clop (Command Line Option Parse)是一款基于struct的命令行解析器，麻
 	- [6. Can only be set once](#can-only-be-set-once)
 	- [7. Quick write](#quick-write)
 	- [8. Multi structure series](#multi-structure-series)
+	- [9. Support callback function parsing](#support-callback-function-parsing)
 	- [Advanced features](#Advanced-features)
 		- [Parsing flag code to generate clop code](#Parsing-flag-code-to-generate-clop-code)
 - [Implementing linux command options](#Implementing-linux-command-options)
@@ -584,7 +586,26 @@ type Asr struct{
  // 可以使用如下命令行参数测试下效果
  // ./example --server-address", ":8080", "--rate", "1s", "--thread-num", "20", "--open-vad"
  ```
- 
+## Support callback function parsing
+* 使用callback=name的写法， 其中name就是需要调用的解析函数。
+```go
+type TestCallback struct {
+	Size int `clop:"short;long;callback=ParseSize" usage:"parse size"`
+	Max  int `clop:"short;long"`
+}
+
+func (t *TestCallback) ParseSize(val string) {
+	// 做些解析工作
+	// t.Size = 解析之后的值
+}
+
+func main() {
+ 	t := TestCallback{}
+	err := clop.Bind(&t)
+
+	fmt.Printf("%#v, %s\n", t, err)
+}
+``` 
 ## Advanced features
 高级功能里面有一些clop包比较有特色的功能
 ### Parsing flag code to generate clop code
