@@ -55,6 +55,8 @@ clop (Command Line Option Parse)是一款基于struct的命令行解析器，麻
 		- [Parsing flag code to generate clop code](#Parsing-flag-code-to-generate-clop-code)
 - [Implementing linux command options](#Implementing-linux-command-options)
 	- [cat](#cat)
+- [faq](#faq)
+	- [The subcommand or option does not take effect](#The-subcommand-or-option-does-not-take-effect)
 
 ## Installation
 
@@ -708,3 +710,8 @@ Args:
     <files>
 */
 ```
+
+## faq
+### The subcommand or option does not take effect
+q: 关于子命令或者命令行命令没有生效  
+a: 可以检查下结构体的字段是否是大写开头。

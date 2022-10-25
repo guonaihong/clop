@@ -15,7 +15,7 @@ import (
 var (
 	ErrDuplicateOptions = errors.New("is already in use")
 	//ErrUsageEmpty       = errors.New("usage cannot be empty")
-	ErrUnsupported  = errors.New("unsupported command")
+	ErrUnsupported  = errors.New("unsupported clop command")
 	ErrNotFoundName = errors.New("no command line options found")
 	ErrOptionName   = errors.New("Illegal option name")
 )
@@ -841,7 +841,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, field
 			c.envAndArgs = append(c.envAndArgs, option)
 
 		default:
-			return fmt.Errorf("%s:(%s) clop(%s)", ErrUnsupported, opt, clop)
+			return fmt.Errorf(`%s:(%s) clop:"%s", Maybe you need to clop:"short;long"`, ErrUnsupported, opt, clop)
 		}
 
 		if strings.HasPrefix(opt, "-") && len(name) == 0 {

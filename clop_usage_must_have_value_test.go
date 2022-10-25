@@ -8,7 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Issue(t *testing.T) {
+// 该文件定位
+// 各种出错的提示信息自测函数
+
+func Test_Usage_MustHaveValue(t *testing.T) {
 
 	type test struct {
 		Long int `clop:"short;long" valid:"required"`
@@ -35,4 +38,16 @@ func Test_Issue(t *testing.T) {
 
 		assert.NotEqual(t, strings.Index(tc, "must have a value!"), -1)
 	}
+}
+
+func Test_Usage_UnknownCommand(t *testing.T) {
+	type cmd struct {
+		C string `clop:"C" usage:""`
+	}
+
+	c0 := cmd{}
+	var b bytes.Buffer
+	c := New([]string{}).SetOutput(&b).SetExit(false)
+	c.Bind(&c0)
+	assert.NotEqual(t, strings.Index(b.String(), `clop:"short;long"`), -1)
 }
