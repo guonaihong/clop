@@ -15,16 +15,34 @@ import (
 var (
 	ErrDuplicateOptions = errors.New("is already in use")
 	//ErrUsageEmpty       = errors.New("usage cannot be empty")
-	ErrUnsupported  = errors.New("unsupported command")
+	ErrUnsupported  = errors.New("unsupported clop command")
 	ErrNotFoundName = errors.New("no command line options found")
 	ErrOptionName   = errors.New("Illegal option name")
 )
 
-const defautlVersion = "v0.0.1"
-
 var (
 	// 显示usage信息里面的[default: xxx]信息，如果为false，就不显示
 	ShowUsageDefault = true
+)
+
+const (
+	defautlVersion      = "v0.0.1"
+	defautlCallbackName = "Parse"
+	defaultSubMain      = "SubMain"
+)
+
+const (
+	optGreedy          = "greedy"
+	optOnce            = "once"
+	optEnv             = "env"
+	optEnvEqual        = "env="
+	optSubcommand      = "subcommand"
+	optSubcommandEqual = "subcommand="
+	optShort           = "short"
+	optLong            = "long"
+	optCallback        = "callback"
+	optCallbackEqual   = "callback="
+	optSpace           = " "
 )
 
 /*
@@ -53,7 +71,8 @@ type Clop struct {
 	about   string //about信息
 	version string //版本信息
 
-	subMain    reflect.Value          //子命令带SubMain方法, 就会自动调用
+	subMain    reflect.Value //子命令带SubMain方法, 就会自动调用
+	structAddr reflect.Value
 	exit       bool                   //测试需要用, 控制-h --help 是否退出进程
 	subcommand map[string]*Subcommand //子命令, 保存结构体当层的所有子命令的信息
 
@@ -85,8 +104,9 @@ type Subcommand struct {
 
 type Option struct {
 	pointer      reflect.Value //存放需要修改的值的reflect.Value类型变量
-	usage        string        //帮助信息
-	showDefValue string        //显示默认值
+	fn           reflect.Value
+	usage        string //帮助信息
+	showDefValue string //显示默认值
 	//表示参数优先级, 高4字节存放args顺序, 低4字节存放命令组合的顺序(ls -ltr)，这里的l的高4字节的值就是0
 	index    uint64
 	envName  string //环境变量
@@ -96,18 +116,18 @@ type Option struct {
 	// 对slice变量无效
 	once bool //只能设置一次，如果设置once标记，命令行传了两次选项会报错
 
-	set bool //是否通过命令行设置过值
+	cmdSet bool //是否通过命令行设置过值
 
 	showShort []string //help显示的短选项
 	showLong  []string //help显示的长选项
 }
 
 func (o *Option) onceResetValue() {
-	if len(o.showDefValue) > 0 && !o.pointer.IsZero() && !o.set {
+	if len(o.showDefValue) > 0 && !o.pointer.IsZero() && !o.cmdSet {
 		resetValue(o.pointer)
 	}
 
-	o.set = true
+	o.cmdSet = true
 }
 
 func New(args []string) *Clop {
@@ -197,6 +217,12 @@ func setValueAndIndex(val string, option *Option, index int, lowIndex int) error
 	option.onceResetValue()
 	option.index = uint64(index) << 31
 	option.index |= uint64(lowIndex)
+	if option.fn.IsValid() {
+		// 如果定义callback, 就不会走默认形为
+		option.fn.Call([]reflect.Value{reflect.ValueOf(val)})
+		return nil
+	}
+
 	return setBase(val, option.pointer)
 }
 
@@ -686,13 +712,18 @@ func (c *Clop) getRoot() (root *Clop) {
 func (c *Clop) parseSubcommandTag(clop string, v reflect.Value, usage string, fieldName string) (newClop *Clop, haveSubcommand bool) {
 	options := strings.Split(clop, ";")
 	for _, opt := range options {
+		var name string
 		switch {
-		case strings.HasPrefix(opt, "subcommand="):
+		case strings.HasPrefix(opt, optSubcommandEqual):
+			name = opt[len(optSubcommandEqual):]
+		case opt == optSubcommand:
+			name = strings.ToLower(fieldName)
+		}
+		if name != "" {
 			if c.subcommand == nil {
 				c.subcommand = make(map[string]*Subcommand, 3)
 			}
 
-			name := opt[len("subcommand="):]
 			newClop := New(nil)
 			//newClop.exit = c.exit //继承exit属性
 			newClop.SetProcName(name)
@@ -700,7 +731,7 @@ func (c *Clop) parseSubcommandTag(clop string, v reflect.Value, usage string, fi
 			c.subcommand[name] = &Subcommand{Clop: newClop, usage: usage}
 			newClop.fieldName = fieldName
 
-			newClop.subMain = v.Addr().MethodByName("SubMain")
+			newClop.subMain = v.Addr().MethodByName(defaultSubMain)
 			return newClop, true
 		}
 	}
@@ -722,18 +753,29 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, field
 
 	flags := 0
 	for _, opt := range options {
-		opt = strings.TrimLeft(opt, " ")
+		opt = strings.TrimLeft(opt, optSpace)
 		if len(opt) == 0 {
 			continue //跳过空值
 		}
 		name := ""
 		// TODO 检查name的长度
 		switch {
+		case strings.HasPrefix(opt, optCallback):
+			funcName := defautlCallbackName
+			if strings.HasPrefix(opt, optCallbackEqual) {
+				funcName = opt[len(optCallbackEqual):]
+			}
+			option.fn = c.structAddr.MethodByName(funcName)
+			// 检查callback的参数长度
+			if option.fn.Type().NumIn() != 1 {
+				panic(fmt.Sprintf("Required function parameters->%s(val string)", funcName))
+			}
+
 		//注册长选项 --name
 		case strings.HasPrefix(opt, "--"):
 			name = opt[2:]
 			fallthrough
-		case strings.HasPrefix(opt, "long"):
+		case strings.HasPrefix(opt, optLong):
 			if !strings.HasPrefix(opt, "--") {
 				if name, err = gnuOptionName(fieldName); err != nil {
 					return err
@@ -749,7 +791,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, field
 		case strings.HasPrefix(opt, "-"):
 			name = opt[1:]
 			fallthrough
-		case strings.HasPrefix(opt, "short"):
+		case strings.HasPrefix(opt, optShort):
 			if !strings.HasPrefix(opt, "-") {
 				if name, err = gnuOptionName(fieldName); err != nil {
 					return err
@@ -762,18 +804,18 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, field
 			}
 			option.showShort = append(option.showShort, name)
 			flags |= isLong
-		case strings.HasPrefix(opt, "greedy"):
+		case strings.HasPrefix(opt, optGreedy):
 			option.greedy = true
-		case strings.HasPrefix(opt, "once"):
+		case strings.HasPrefix(opt, optOnce):
 			option.once = true
-		case opt == "env":
+		case opt == optEnv:
 			if name, err = envOptionName(fieldName); err != nil {
 				return err
 			}
 			fallthrough
-		case strings.HasPrefix(opt, "env="):
+		case strings.HasPrefix(opt, optEnvEqual):
 			flags |= isEnv
-			if strings.HasPrefix(opt, "env=") {
+			if strings.HasPrefix(opt, optEnvEqual) {
 				name = opt[4:]
 			}
 
@@ -799,7 +841,7 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, field
 			c.envAndArgs = append(c.envAndArgs, option)
 
 		default:
-			return fmt.Errorf("%s:(%s) clop(%s)", ErrUnsupported, opt, clop)
+			return fmt.Errorf(`%s:(%s) clop:"%s", Maybe you need to clop:"short;long"`, ErrUnsupported, opt, clop)
 		}
 
 		if strings.HasPrefix(opt, "-") && len(name) == 0 {
@@ -873,6 +915,7 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 	}
 
 	typ := v.Type()
+	c.structAddr = v.Addr()
 	for i := 0; i < v.NumField(); i++ {
 		sf := typ.Field(i)
 
