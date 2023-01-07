@@ -26,7 +26,6 @@ var (
 )
 
 const (
-	defautlVersion      = "v0.0.1"
 	defautlCallbackName = "Parse"
 	defaultSubMain      = "SubMain"
 )
@@ -68,8 +67,9 @@ type Clop struct {
 	unparsedArgs []unparsedArg            //没有解析的args参数
 	allStruct    map[interface{}]struct{} //所有注册过的结构体
 
-	about   string //about信息
-	version string //版本信息
+	about         string  //about信息
+	version       string  //版本信息
+	versionOption *Option //版本选项
 
 	subMain    reflect.Value //子命令带SubMain方法, 就会自动调用
 	structAddr reflect.Value
@@ -87,7 +87,41 @@ type Clop struct {
 // 设置版本相关信息
 func (c *Clop) SetVersion(version string) *Clop {
 	c.version = version
+	if c.versionOption == nil {
+		c.SetVersionOption("V", "version")
+	}
+
 	return c
+}
+
+// 设置版本相关信息
+func (c *Clop) SetVersionOption(short, long string) *Clop {
+	var opt Option
+
+	if short != "" {
+		opt.showShort = []string{short}
+	}
+	if long != "" {
+		opt.showLong = []string{long}
+	}
+
+	c.versionOption = &opt
+
+	return c
+}
+
+func (c *Clop) versionShort() string {
+	if c.versionOption != nil && len(c.versionOption.showShort) > 0 {
+		return c.versionOption.showShort[0]
+	}
+	return ""
+}
+
+func (c *Clop) versionLong() string {
+	if c.versionOption != nil && len(c.versionOption.showLong) > 0 {
+		return c.versionOption.showLong[0]
+	}
+	return ""
 }
 
 // 设置about相关信息
@@ -201,6 +235,25 @@ func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long
 		return fmt.Errorf("%w:%s:unsupported characters found(%c)", ErrOptionName, name, c)
 	}
 
+	if c.version != "" && (name == c.versionShort() || name == c.versionLong()) {
+		name = "-" + name
+		if long {
+			name = "-" + name
+		}
+
+		versionOpt := ""
+		if c.versionShort() != "" {
+			versionOpt = "-" + c.versionShort()
+		}
+		if c.versionLong() != "" {
+			if versionOpt != "" {
+				versionOpt += ","
+			}
+			versionOpt += "--" + c.versionLong()
+		}
+		return fmt.Errorf("%s %w, duplicate definition with version option %s", name, ErrDuplicateOptions, versionOpt)
+	}
+
 	if o, ok := m[name]; ok {
 		name = "-" + name
 		if long {
@@ -260,9 +313,6 @@ func setBoolAndBoolSliceDefval(pointer reflect.Value, value *string) {
 			*value = "true"
 		}
 	}
-
-	return
-
 }
 
 func (c *Clop) parseEqualValue(arg string) (value string, option *Option, err error) {
@@ -367,8 +417,6 @@ func (c *Clop) parseLong(arg string, index *int) (err error) {
 			return nil
 		}
 	}
-
-	return nil
 }
 
 // 设置环境变量和参数
@@ -552,11 +600,9 @@ func (c *Clop) getOptionAndSet(arg string, index *int, numMinuses int) error {
 	}
 
 	// 显示版本信息
-	if arg == "V" || arg == "version" {
-		if _, ok := c.shortAndLong[arg]; !ok {
-			c.showVersion()
-			return nil
-		}
+	if c.version != "" && (arg == c.versionShort() || arg == c.versionLong()) {
+		c.showVersion()
+		return nil
 	}
 	// 取出option对象
 	switch numMinuses {
@@ -596,7 +642,6 @@ func (c *Clop) showShortAndLong(v *Option) string {
 }
 
 func (c *Clop) genHelpMessage(h *Help) {
-
 	// shortAndLong多个key指向一个option,需要used map去重
 	used := make(map[*Option]struct{}, len(c.shortAndLong))
 
@@ -604,8 +649,14 @@ func (c *Clop) genHelpMessage(h *Help) {
 		c.shortAndLong["h"] = &Option{usage: "print the help information", showShort: []string{"h"}, showLong: []string{"help"}}
 	}
 
-	if c.shortAndLong["V"] == nil && c.shortAndLong["version"] == nil {
-		c.shortAndLong["V"] = &Option{usage: "print version information", showShort: []string{"V"}, showLong: []string{"version"}}
+	if c.version != "" {
+		if c.versionShort() != "" && c.versionLong() != "" {
+			c.shortAndLong[c.versionShort()] = &Option{usage: "print version information", showShort: []string{c.versionShort()}, showLong: []string{c.versionLong()}}
+		} else if c.versionShort() != "" {
+			c.shortAndLong[c.versionShort()] = &Option{usage: "print version information", showShort: []string{c.versionShort()}}
+		} else {
+			c.shortAndLong[c.versionLong()] = &Option{usage: "print version information", showLong: []string{c.versionLong()}}
+		}
 	}
 
 	saveHelp := func(options map[string]*Option) {
@@ -698,7 +749,6 @@ func (c *Clop) printHelpMessage() {
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 func (c *Clop) getRoot() (root *Clop) {
@@ -847,7 +897,6 @@ func (c *Clop) parseTagAndSetOption(clop string, usage string, def string, field
 		if strings.HasPrefix(opt, "-") && len(name) == 0 {
 			return fmt.Errorf("Illegal command line option:%s", opt)
 		}
-
 	}
 
 	if flags&isShort == 0 && flags&isLong == 0 && flags&isEnv == 0 && flags&isArgs == 0 {
@@ -875,7 +924,6 @@ func (c *Clop) registerCore(v reflect.Value, sf reflect.StructField) error {
 	}
 
 	if v.Kind() != reflect.Struct {
-
 		def := Tag(sf.Tag).Get("default")
 		def = strings.TrimSpace(def)
 		if len(def) > 0 {
@@ -1019,7 +1067,6 @@ func (c *Clop) bindEnvAndArgs() error {
 
 // bind结构体
 func (c *Clop) bindStruct() error {
-
 	for i := 0; i < len(c.args); i++ {
 
 		if err := c.parseOneOption(&i); err != nil {
@@ -1032,11 +1079,6 @@ func (c *Clop) bindStruct() error {
 }
 
 func (c *Clop) Bind(x interface{}) (err error) {
-	// 如果c.version为空就给一个默认值
-	if c.version == "" {
-		c.version = defautlVersion
-	}
-
 	defer func() {
 		if err != nil {
 			fmt.Fprintln(c.w, err)
@@ -1117,6 +1159,11 @@ func Bind(x interface{}) error {
 // 设置版本号
 func SetVersion(version string) {
 	CommandLine.SetVersion(version)
+}
+
+// 设置版本号选项，覆盖默认的V和Version
+func SetVersionOption(short, long string) {
+	CommandLine.SetVersionOption(short, long)
 }
 
 func SetAbout(about string) {
