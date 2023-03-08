@@ -177,23 +177,30 @@ func (c *Clop) IsSetSubcommand(subcommand string) bool {
 	return ok
 }
 
-func (c *Clop) GetIndex(optName string) uint64 {
+// TODO 补充下更多单元测试
+func (c *Clop) GetIndexEx(optName string) (index uint64, ok bool) {
 	// 长短选项
 	o, ok := c.shortAndLong[optName]
 	if ok {
-		return o.index
+		return o.index, true
 	}
 
 	// args参数
 	if _, ok := c.checkArgs[optName]; ok {
 		for _, o := range c.envAndArgs {
 			if o.argsName == optName {
-				return o.index
+				return o.index, true
 			}
 		}
 	}
 
-	return 0
+	return 0, false
+
+}
+
+func (c *Clop) GetIndex(optName string) (index uint64) {
+	index, _ = c.GetIndexEx(optName)
+	return
 }
 
 func (c *Clop) setOption(name string, option *Option, m map[string]*Option, long bool) error {
