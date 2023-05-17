@@ -661,7 +661,7 @@ func (c *Clop) genHelpMessage(h *Help) {
 			c.shortAndLong[c.versionShort()] = &Option{usage: "print version information", showShort: []string{c.versionShort()}, showLong: []string{c.versionLong()}}
 		} else if c.versionShort() != "" {
 			c.shortAndLong[c.versionShort()] = &Option{usage: "print version information", showShort: []string{c.versionShort()}}
-		} else {
+		} else if c.versionLong() != "" {
 			c.shortAndLong[c.versionLong()] = &Option{usage: "print version information", showLong: []string{c.versionLong()}}
 		}
 	}
