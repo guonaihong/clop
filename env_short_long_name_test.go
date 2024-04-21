@@ -18,6 +18,7 @@ func Test_ShortLongName(t *testing.T) {
 		{"almost_all", "almost-all"},
 		{"_almost_all", "almost-all"},
 		{"LongOpt_all", "long-opt-all"},
+		{"JSON", "JSON"},
 	} {
 		got, err := gnuOptionName(tcase.in)
 		assert.NoError(t, err)
@@ -32,6 +33,7 @@ func Test_EnvName(t *testing.T) {
 		{"almost_all", "ALMOST_ALL"},
 		{"_almost_all", "ALMOST_ALL"},
 		{"envOpt_all", "ENV_OPT_ALL"},
+		{"JSON", "JSON"},
 	} {
 		got, err := envOptionName(tcase.in)
 		assert.NoError(t, err)
