@@ -6,14 +6,28 @@ import "strings"
 // LongOpt -> short-opt
 // long_opt -> long-opt
 
+// 专有名字不转换
+// 专有名字词
+var specialNames = map[string]bool{
+	"JSON": true,
+	"XML":  true,
+	"YAML": true,
+	// Add more special names here
+}
+
 func wordStart(b byte) bool {
 
 	return b >= 'A' && b <= 'Z' || b == '_'
 }
 
+// gnuOptionName 转换为gnu风格的名字
 func gnuOptionName(opt string) (string, error) {
 
 	var name strings.Builder
+
+	if specialNames[opt] {
+		return opt, nil
+	}
 
 	for i, b := range []byte(opt) {
 
@@ -37,10 +51,14 @@ func gnuOptionName(opt string) (string, error) {
 	return name.String(), nil
 }
 
+// 环境变量名字是大写，下划线(蛇形)风格
 func envOptionName(opt string) (string, error) {
 
 	var name strings.Builder
 
+	if specialNames[opt] {
+		return opt, nil
+	}
 	for i, b := range []byte(opt) {
 
 		if wordStart(b) {
