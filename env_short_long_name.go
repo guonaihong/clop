@@ -12,7 +12,8 @@ var specialNames = map[string]bool{
 	"JSON": true,
 	"XML":  true,
 	"YAML": true,
-	// Add more special names here
+	"URL":  true,
+	"URI":  true,
 }
 
 func wordStart(b byte) bool {
