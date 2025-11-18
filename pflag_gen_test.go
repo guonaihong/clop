@@ -3,8 +3,6 @@ package clop
 import (
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_GenStructBytes(t *testing.T) {

@@ -1,11 +1,10 @@
 package clop
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-//测试once功能打开
+// 测试once功能打开
 func Test_Once_Open(t *testing.T) {
 	type once struct {
 		Debug bool `clop:"-d; --debug; once" usage:"debug mode"`

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // 该文件定位

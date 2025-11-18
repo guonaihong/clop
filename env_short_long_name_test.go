@@ -2,8 +2,6 @@ package clop
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type nameTestCase struct {

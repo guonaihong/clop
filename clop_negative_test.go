@@ -2,8 +2,6 @@ package clop
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_API_Neg(t *testing.T) {

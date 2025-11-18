@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type testAPI struct {

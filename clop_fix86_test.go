@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // https://github.com/guonaihong/clop/issues/86

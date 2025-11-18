@@ -3,8 +3,6 @@ package clop
 import (
 	"bytes"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type Issue7_Test struct {

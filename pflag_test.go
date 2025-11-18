@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type Pflag_Parser_Case struct {

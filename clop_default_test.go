@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // 测试默认(default 标签)值

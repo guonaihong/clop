@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // 测试短选项的情况

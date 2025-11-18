@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // 测试显示信息, 普通命令

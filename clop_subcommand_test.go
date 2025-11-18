@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 type add struct {

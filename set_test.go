@@ -3,8 +3,6 @@ package clop
 import (
 	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_Set_setSlice(t *testing.T) {

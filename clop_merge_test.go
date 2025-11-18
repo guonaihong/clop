@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // 测试用

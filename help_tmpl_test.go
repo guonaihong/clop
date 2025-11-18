@@ -5,8 +5,6 @@ import (
 	"io"
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func checkUsage(b *bytes.Buffer) bool {
